@@ -27,6 +27,7 @@ include_directories(
 # Generate exe file
 set(DETECTION_BY_TRACKER_SRC
   src/detection_by_tracker_core.cpp
+  src/likelihood_field_tracker.cpp
 )
 
 ament_auto_add_library(detection_by_tracker_node SHARED
