@@ -249,8 +249,8 @@ void VehicleParticle::setCornerPoints(const Eigen::Vector2d center, const double
   Eigen::Rotation2Dd rotate(orientation); /// rotation
   auto R = rotate.toRotationMatrix(); /// Rotation matrix R^T
   // corners in local coordinate
-  p0 = Eigen::Vector2d(length/2.0,-width/2.0);   p1 = Eigen::Vector2d(-length/2.0,-width/2.0);
-  p2 = Eigen::Vector2d(-length/2.0,+width/2.0);  p3 = Eigen::Vector2d(length/2.0,width/2.0);
+  auto p0 = Eigen::Vector2d(length/2.0,-width/2.0);   auto p1 = Eigen::Vector2d(-length/2.0,-width/2.0);
+  auto p2 = Eigen::Vector2d(-length/2.0,+width/2.0);  auto p3 = Eigen::Vector2d(length/2.0,width/2.0);
   // set corner points coordinates
   corner_points_[0] = R*p0 + center;
   corner_points_[1] = R*p1 + center;
@@ -366,12 +366,12 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::ve
   Eigen::Matrix3d cov;
   double w2 = 0;
 
-  for(std::size_t i; i < loop; i++){
+  for(std::size_t i=0; i < loop; i++){
     mean += vectors[i] * likelihoods[i]; 
     w2 += likelihoods[i]*likelihoods[i];
   }
 
-  for(std::size_t i; i < loop; i++){
+  for(std::size_t i=0; i < loop; i++){
     cov += (mean-vectors[i]) * (mean-vectors[i]).transpose() * likelihoods[i]/(1-w2);
   }
 
@@ -402,24 +402,24 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 
   // fine tracking
   createVehiclePositionParticle(particle_num_);
-
-  likelihoods.clear();
-  states.clear();
+  // tmp
+  std::vector<double> likelihoods2;
+  std::vector<Eigen::Vector3d> states2;
 
   for(std::uint32_t i=0; i < particle_num_; i++){
     double likelihood = vehicle_particle_[i].calcFineLikelihood(scan);
-    likelihoods.push_back(likelihood);
+    likelihoods2.push_back(likelihood);
     Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
-    states.push_back(state);
+    states2.push_back(state);
   }
 
 
-  auto mean_cov  = calcMeanAndCovFromParticles(likelihoods, states);
+  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods2, states2);
   
-  auto mstate = std::get<0>(mean_cov);
-  covariance_ = std::get<1>(mean_cov);
-  position_ = Eigen::Vector2d(mstate.x(),mstate.y());
-  orientation_ = mstate.z();
+  auto mstate_ = std::get<0>(mean_cov_);
+  covariance_ = std::get<1>(mean_cov_);
+  position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
+  orientation_ = mstate_.z();
 
 
 }
