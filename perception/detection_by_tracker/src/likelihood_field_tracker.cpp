@@ -480,8 +480,18 @@ void LikelihoodFieldTracker::onObjects(
       objects_pub_->publish(detected_objects);
       return;
     } 
+
+    // LaserScan to std::vector
+    std::vector<Eigen::Vector2d> scan_vec;
+    for(int i=0; input_msg->ranges.size();i++){
+      double th = input_msg->angle_min+ (double)i*input_msg->angle_increment;
+      double range = input_msg->ranges[i];
+      Eigen::Vector2d xy{range*cos(th), range*sin(th)};
+      scan_vec.push_back(xy);
+    }
+
     // to simplify post processes, convert tracked_objects to DetectedObjects message.
-    tracked_objects = perception_utils::toDetectedObjects(transformed_objects);
+    //tracked_objects = perception_utils::toDetectedObjects(transformed_objects);
   }
 
   // // merge over segmented objects
