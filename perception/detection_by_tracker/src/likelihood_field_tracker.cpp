@@ -503,6 +503,9 @@ void LikelihoodFieldTracker::onObjects(
     for(int i=0; input_msg->ranges.size();i++){
       double th = input_msg->angle_min+ (double)i*input_msg->angle_increment;
       double range = input_msg->ranges[i];
+      if( range > input_msg->range_max || range < input_msg->range_min){
+        continue;
+      }
       Eigen::Vector2d xy{range*cos(th), range*sin(th)};
       scan_vec.push_back(xy);
     }
