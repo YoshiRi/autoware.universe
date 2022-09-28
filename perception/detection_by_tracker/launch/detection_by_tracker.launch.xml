@@ -9,4 +9,11 @@
     <remap from="~/input/initial_objects" to="$(var input/initial_objects)"/>
     <remap from="~/output" to="$(var output)"/>
   </node>
+
+  <node pkg="detection_by_tracker" exec="likelihood_field_tracker" name="lf_tracker_node" output="screen">
+  <remap from="~/input/tracked_objects" to="$(var input/tracked_objects)"/>
+  <remap from="~/input/initial_objects" to="$(var input/initial_objects)"/>
+  <remap from="~/input/scan" to="/perception/occupancy_grid_map/virtual_scan/laserscan" />
+  <remap from="~/output2" to="/lftracker"/>
+
 </launch>
