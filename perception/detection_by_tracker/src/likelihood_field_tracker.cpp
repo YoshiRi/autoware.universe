@@ -757,5 +757,5 @@ void LikelihoodFieldTracker::onObjects(
 //   }
 // }
 
-//#include <rclcpp_components/register_node_macro.hpp>
-//RCLCPP_COMPONENTS_REGISTER_NODE(LikelihoodFieldTracker)
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(LikelihoodFieldTracker)
