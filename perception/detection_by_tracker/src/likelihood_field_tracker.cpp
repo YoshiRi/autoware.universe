@@ -423,6 +423,23 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 
 }
 
+
+autoware_auto_perception_msgs::msg::TrackedObject SingleLFTracker::toTrackedObject(autoware_auto_perception_msgs::msg::TrackedObject &object)
+{
+  autoware_auto_perception_msgs::msg::TrackedObject estimated_object;
+  estimated_object.object_id = object.object_id;
+  estimated_object.existence_probability = object.existence_probability;
+  estimated_object.classification = object.classification;
+  estimated_object.shape = object.shape;
+  estimated_object.kinematics.pose_with_covariance = object.kinematics.pose_with_covariance;
+  estimated_object.kinematics.pose_with_covariance.pose.position.x = position_.x();
+  estimated_object.kinematics.pose_with_covariance.pose.position.y = position_.y();
+  const float yaw_hat = tier4_autoware_utils::normalizeRadian(orientation_);
+  estimated_object.kinematics.pose_with_covariance.pose.orientation = tier4_autoware_utils::createQuaternionFromYaw(yaw_hat);
+
+  return estimated_object;
+}
+
 /// PointCloud2 to eigen vector
 // std::vector<Eigen::Vector2d> PoinCloud2ToScan(sensor_msgs::msg::PointCloud2::ConstSharedPtr & cloud)
 // {
@@ -470,7 +487,7 @@ void LikelihoodFieldTracker::onObjects(
   // get objects from tracking module
   autoware_auto_perception_msgs::msg::DetectedObjects tracked_objects;
   {
-    autoware_auto_perception_msgs::msg::TrackedObjects objects, transformed_objects;
+    autoware_auto_perception_msgs::msg::TrackedObjects objects, estimated_objects;
     // Do prediction
     const bool available_trackers =
       tracker_handler_.estimateTrackedObjects(input_msg->header.stamp, objects);
@@ -490,8 +507,26 @@ void LikelihoodFieldTracker::onObjects(
       scan_vec.push_back(xy);
     }
 
+
+    // tmp
+    // lf fitting for each objects
+    for(int i=0; objects.objects.size();i++){
+      // apply only for vehicle
+      const auto label = objects.objects[i].classification.front().label;
+      const bool is_vehicle =   Label::CAR == label || Label::TRUCK == label || Label::BUS == label || Label::TRAILER == label;
+      if(!is_vehicle){
+        continue;
+      }
+
+      // Create Tracker
+      SingleLFTracker vehicle(objects.objects[i]);
+      vehicle.estimateState(scan_vec);
+      estimated_objects.objects.push_back(vehicle.toTrackedObject(objects.objects[i]));
+    }
+    
+
     // to simplify post processes, convert tracked_objects to DetectedObjects message.
-    //tracked_objects = perception_utils::toDetectedObjects(transformed_objects);
+    detected_objects = perception_utils::toDetectedObjects(estimated_objects);
   }
 
   // // merge over segmented objects
