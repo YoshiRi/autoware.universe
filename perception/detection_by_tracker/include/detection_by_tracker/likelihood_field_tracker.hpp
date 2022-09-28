@@ -28,6 +28,7 @@
 #include <autoware_auto_perception_msgs/msg/tracked_objects.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 #include <tier4_perception_msgs/msg/detected_objects_with_feature.hpp>
 
 
@@ -52,7 +53,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
+#include "detection_by_tracker/detection_by_tracker_core.hpp"
 //using autoware::common::types::float64_t; // convert double to float64_t later
 
 
@@ -167,65 +168,53 @@ class SingleLFTracker
   public:
     SingleLFTracker(const autoware_auto_perception_msgs::msg::TrackedObject & object);
     void createVehiclePositionParticle(const std::uint32_t particle_num);
-    void createVehicleShapeParticle();
+    //void createVehicleShapeParticle();
     void estimateState(const std::vector<Eigen::Vector2d> & scan);
 };
 
 
 
-// class TrackerHandler
-// {
-// private:
-//   std::deque<autoware_auto_perception_msgs::msg::TrackedObjects> objects_buffer_;
+class LikelihoodFieldTracker : public rclcpp::Node
+{
+public:
+  explicit LikelihoodFieldTracker(const rclcpp::NodeOptions & node_options);
 
-// public:
-//   TrackerHandler() = default;
-//   void onTrackedObjects(
-//     const autoware_auto_perception_msgs::msg::TrackedObjects::ConstSharedPtr input_objects_msg);
-//   bool estimateTrackedObjects(
-//     const rclcpp::Time & time, autoware_auto_perception_msgs::msg::TrackedObjects & output);
-// };
+private:
+  rclcpp::Publisher<autoware_auto_perception_msgs::msg::DetectedObjects>::SharedPtr objects_pub_;
+  rclcpp::Subscription<autoware_auto_perception_msgs::msg::TrackedObjects>::SharedPtr trackers_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scans_sub_;
+  rclcpp::Subscription<tier4_perception_msgs::msg::DetectedObjectsWithFeature>::SharedPtr
+    initial_objects_sub_;
 
-// class LikelihoodFieldTracker : public rclcpp::Node
-// {
-// public:
-//   explicit LikelihoodFieldTracker(const rclcpp::NodeOptions & node_options);
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
 
-// private:
-//   rclcpp::Publisher<autoware_auto_perception_msgs::msg::DetectedObjects>::SharedPtr objects_pub_;
-//   rclcpp::Subscription<autoware_auto_perception_msgs::msg::TrackedObjects>::SharedPtr trackers_sub_;
-//   rclcpp::Subscription<tier4_perception_msgs::msg::DetectedObjectsWithFeature>::SharedPtr
-//     initial_objects_sub_;
+  TrackerHandler tracker_handler_;
+  std::shared_ptr<ShapeEstimator> shape_estimator_;
+  std::shared_ptr<euclidean_cluster::EuclideanClusterInterface> cluster_;
+  std::shared_ptr<Debugger> debugger_;
 
-//   tf2_ros::Buffer tf_buffer_;
-//   tf2_ros::TransformListener tf_listener_;
+  bool ignore_unknown_tracker_;
 
-//   TrackerHandler tracker_handler_;
-//   std::shared_ptr<ShapeEstimator> shape_estimator_;
-//   std::shared_ptr<euclidean_cluster::EuclideanClusterInterface> cluster_;
-//   std::shared_ptr<Debugger> debugger_;
+  void onObjects(
+    const sensor_msgs::msg::LaserScan::ConstSharedPtr input_msg);
 
-//   bool ignore_unknown_tracker_;
+  // void divideUnderSegmentedObjects(
+  //   const autoware_auto_perception_msgs::msg::DetectedObjects & tracked_objects,
+  //   const tier4_perception_msgs::msg::DetectedObjectsWithFeature & in_objects,
+  //   autoware_auto_perception_msgs::msg::DetectedObjects & out_no_found_tracked_objects,
+  //   tier4_perception_msgs::msg::DetectedObjectsWithFeature & out_objects);
 
-//   void onObjects(
-//     const tier4_perception_msgs::msg::DetectedObjectsWithFeature::ConstSharedPtr input_msg);
+  // float optimizeUnderSegmentedObject(
+  //   const autoware_auto_perception_msgs::msg::DetectedObject & target_object,
+  //   const sensor_msgs::msg::PointCloud2 & under_segmented_cluster,
+  //   tier4_perception_msgs::msg::DetectedObjectWithFeature & output);
 
-//   void divideUnderSegmentedObjects(
-//     const autoware_auto_perception_msgs::msg::DetectedObjects & tracked_objects,
-//     const tier4_perception_msgs::msg::DetectedObjectsWithFeature & in_objects,
-//     autoware_auto_perception_msgs::msg::DetectedObjects & out_no_found_tracked_objects,
-//     tier4_perception_msgs::msg::DetectedObjectsWithFeature & out_objects);
-
-//   float optimizeUnderSegmentedObject(
-//     const autoware_auto_perception_msgs::msg::DetectedObject & target_object,
-//     const sensor_msgs::msg::PointCloud2 & under_segmented_cluster,
-//     tier4_perception_msgs::msg::DetectedObjectWithFeature & output);
-
-//   void mergeOverSegmentedObjects(
-//     const autoware_auto_perception_msgs::msg::DetectedObjects & tracked_objects,
-//     const tier4_perception_msgs::msg::DetectedObjectsWithFeature & in_objects,
-//     autoware_auto_perception_msgs::msg::DetectedObjects & out_no_found_tracked_objects,
-//     tier4_perception_msgs::msg::DetectedObjectsWithFeature & out_objects);
-// };
+  // void mergeOverSegmentedObjects(
+  //   const autoware_auto_perception_msgs::msg::DetectedObjects & tracked_objects,
+  //   const tier4_perception_msgs::msg::DetectedObjectsWithFeature & in_objects,
+  //   autoware_auto_perception_msgs::msg::DetectedObjects & out_no_found_tracked_objects,
+  //   tier4_perception_msgs::msg::DetectedObjectsWithFeature & out_objects);
+};
 
 #endif  // DETECTION_BY_TRACKER__LIKELIHOOD_FIELD_TRACKER_CORE_HPP_

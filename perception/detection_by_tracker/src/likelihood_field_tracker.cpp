@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "detection_by_tracker/likelihood_field_tracker.hpp"
-#include "detection_by_tracker/detection_by_tracker_core.hpp"
+
 
 #include "perception_utils/perception_utils.hpp"
 
@@ -421,148 +421,92 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
   orientation_ = mstate_.z();
 
-
 }
 
-
-
-
-// void TrackerHandler::onTrackedObjects(
-//   const autoware_auto_perception_msgs::msg::TrackedObjects::ConstSharedPtr msg)
+/// PointCloud2 to eigen vector
+// std::vector<Eigen::Vector2d> PoinCloud2ToScan(sensor_msgs::msg::PointCloud2::ConstSharedPtr & cloud)
 // {
-//   constexpr size_t max_buffer_size = 10;
-
-//   // Add tracked objects to buffer
-//   objects_buffer_.push_front(*msg);
-
-//   // Remove old data
-//   while (max_buffer_size < objects_buffer_.size()) {
-//     objects_buffer_.pop_back();
-//   }
+//   cloud->data.
 // }
 
-// bool TrackerHandler::estimateTrackedObjects(
-//   const rclcpp::Time & time, autoware_auto_perception_msgs::msg::TrackedObjects & output)
-// {
-//   if (objects_buffer_.empty()) {
-//     return false;
-//   }
 
-//   // Get the objects closest to the target time.
-//   const auto target_objects_iter = std::min_element(
-//     objects_buffer_.cbegin(), objects_buffer_.cend(),
-//     [&time](
-//       autoware_auto_perception_msgs::msg::TrackedObjects first,
-//       autoware_auto_perception_msgs::msg::TrackedObjects second) {
-//       return std::fabs((time - first.header.stamp).seconds()) <
-//              std::fabs((time - second.header.stamp).seconds());
-//     });
 
-//   // Estimate the pose of the object at the target time
-//   const auto dt = time - target_objects_iter->header.stamp;
-//   output.header.frame_id = target_objects_iter->header.frame_id;
-//   output.header.stamp = time;
-//   for (const auto & object : target_objects_iter->objects) {
-//     const auto & pose_with_covariance = object.kinematics.pose_with_covariance;
-//     const auto & x = pose_with_covariance.pose.position.x;
-//     const auto & y = pose_with_covariance.pose.position.y;
-//     const auto & z = pose_with_covariance.pose.position.z;
-//     const float yaw = tf2::getYaw(pose_with_covariance.pose.orientation);
-//     const auto & twist = object.kinematics.twist_with_covariance.twist;
-//     const float & vx = twist.linear.x;
-//     const float & wz = twist.angular.z;
+LikelihoodFieldTracker::LikelihoodFieldTracker(const rclcpp::NodeOptions & node_options)
+: rclcpp::Node("likelihood_field_tracker", node_options),
+  tf_buffer_(this->get_clock()),
+  tf_listener_(tf_buffer_)
+{
+  // Create publishers and subscribers
+  trackers_sub_ = create_subscription<autoware_auto_perception_msgs::msg::TrackedObjects>(
+    "~/input/tracked_objects", rclcpp::QoS{1},
+    std::bind(&TrackerHandler::onTrackedObjects, &tracker_handler_, std::placeholders::_1));
 
-//     // build output
-//     autoware_auto_perception_msgs::msg::TrackedObject estimated_object;
-//     estimated_object.object_id = object.object_id;
-//     estimated_object.existence_probability = object.existence_probability;
-//     estimated_object.classification = object.classification;
-//     estimated_object.shape = object.shape;
-//     estimated_object.kinematics.pose_with_covariance.pose.position.x =
-//       x + vx * std::cos(yaw) * dt.seconds();
-//     estimated_object.kinematics.pose_with_covariance.pose.position.y =
-//       y + vx * std::sin(yaw) * dt.seconds();
-//     estimated_object.kinematics.pose_with_covariance.pose.position.z = z;
-//     const float yaw_hat = tier4_autoware_utils::normalizeRadian(yaw + wz * dt.seconds());
-//     estimated_object.kinematics.pose_with_covariance.pose.orientation =
-//       tier4_autoware_utils::createQuaternionFromYaw(yaw_hat);
-//     output.objects.push_back(estimated_object);
-//   }
-//   return true;
-// }
+  scans_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
+    "/perception/occupancy_grid_map/virtual_scan/laserscan", rclcpp::QoS{1},
+    std::bind(&LikelihoodFieldTracker::onObjects, this, std::placeholders::_1) );
+  
+  // initial_objects_sub_ =
+  //   create_subscription<tier4_perception_msgs::msg::DetectedObjectsWithFeature>(
+  //     "~/input/initial_objects", rclcpp::QoS{1},
+  //     std::bind(&LikelihoodFieldTracker::onObjects, this, std::placeholders::_1));
+  objects_pub_ = create_publisher<autoware_auto_perception_msgs::msg::DetectedObjects>(
+    "/perception/lftracker", rclcpp::QoS{1});
 
-// LikelihoodFieldTracker::LikelihoodFieldTracker(const rclcpp::NodeOptions & node_options)
-// : rclcpp::Node("likelihood_field_tracker", node_options),
-//   tf_buffer_(this->get_clock()),
-//   tf_listener_(tf_buffer_)
-// {
-//   // Create publishers and subscribers
-//   trackers_sub_ = create_subscription<autoware_auto_perception_msgs::msg::TrackedObjects>(
-//     "~/input/tracked_objects", rclcpp::QoS{1},
-//     std::bind(&TrackerHandler::onTrackedObjects, &tracker_handler_, std::placeholders::_1));
-//   initial_objects_sub_ =
-//     create_subscription<tier4_perception_msgs::msg::DetectedObjectsWithFeature>(
-//       "~/input/initial_objects", rclcpp::QoS{1},
-//       std::bind(&LikelihoodFieldTracker::onObjects, this, std::placeholders::_1));
-//   objects_pub_ = create_publisher<autoware_auto_perception_msgs::msg::DetectedObjects>(
-//     "~/output", rclcpp::QoS{1});
+  //ignore_unknown_tracker_ = declare_parameter<bool>("ignore_unknown_tracker", true);
 
-//   ignore_unknown_tracker_ = declare_parameter<bool>("ignore_unknown_tracker", true);
+  /// ???
+  // shape_estimator_ = std::make_shared<ShapeEstimator>(true, true);
+  // cluster_ = std::make_shared<euclidean_cluster::VoxelGridBasedEuclideanCluster>(
+  //   false, 10, 10000, 0.7, 0.3, 0);
+  // debugger_ = std::make_shared<Debugger>(this);
+}
 
-//   shape_estimator_ = std::make_shared<ShapeEstimator>(true, true);
-//   cluster_ = std::make_shared<euclidean_cluster::VoxelGridBasedEuclideanCluster>(
-//     false, 10, 10000, 0.7, 0.3, 0);
-//   debugger_ = std::make_shared<Debugger>(this);
-// }
+void LikelihoodFieldTracker::onObjects(
+  const sensor_msgs::msg::LaserScan::ConstSharedPtr input_msg)
+{
+  autoware_auto_perception_msgs::msg::DetectedObjects detected_objects;
+  detected_objects.header = input_msg->header;
 
-// void LikelihoodFieldTracker::onObjects(
-//   const tier4_perception_msgs::msg::DetectedObjectsWithFeature::ConstSharedPtr input_msg)
-// {
-//   autoware_auto_perception_msgs::msg::DetectedObjects detected_objects;
-//   detected_objects.header = input_msg->header;
+  // get objects from tracking module
+  autoware_auto_perception_msgs::msg::DetectedObjects tracked_objects;
+  {
+    autoware_auto_perception_msgs::msg::TrackedObjects objects, transformed_objects;
+    // Do prediction
+    const bool available_trackers =
+      tracker_handler_.estimateTrackedObjects(input_msg->header.stamp, objects);
+    
+    // Return if none object is tracked
+    if (!available_trackers) {
+      objects_pub_->publish(detected_objects);
+      return;
+    } 
+    // to simplify post processes, convert tracked_objects to DetectedObjects message.
+    tracked_objects = perception_utils::toDetectedObjects(transformed_objects);
+  }
 
-//   // get objects from tracking module
-//   autoware_auto_perception_msgs::msg::DetectedObjects tracked_objects;
-//   {
-//     autoware_auto_perception_msgs::msg::TrackedObjects objects, transformed_objects;
-//     const bool available_trackers =
-//       tracker_handler_.estimateTrackedObjects(input_msg->header.stamp, objects);
-//     if (
-//       !available_trackers ||
-//       !perception_utils::transformObjects(
-//         objects, input_msg->header.frame_id, tf_buffer_, transformed_objects)) {
-//       objects_pub_->publish(detected_objects);
-//       return;
-//     }
-//     // to simplify post processes, convert tracked_objects to DetectedObjects message.
-//     tracked_objects = perception_utils::toDetectedObjects(transformed_objects);
-//   }
-//   debugger_->publishInitialObjects(*input_msg);
-//   debugger_->publishTrackedObjects(tracked_objects);
+  // // merge over segmented objects
+  // tier4_perception_msgs::msg::DetectedObjectsWithFeature merged_objects;
+  // autoware_auto_perception_msgs::msg::DetectedObjects no_found_tracked_objects;
+  // mergeOverSegmentedObjects(tracked_objects, *input_msg, no_found_tracked_objects, merged_objects);
+  // debugger_->publishMergedObjects(merged_objects);
 
-//   // merge over segmented objects
-//   tier4_perception_msgs::msg::DetectedObjectsWithFeature merged_objects;
-//   autoware_auto_perception_msgs::msg::DetectedObjects no_found_tracked_objects;
-//   mergeOverSegmentedObjects(tracked_objects, *input_msg, no_found_tracked_objects, merged_objects);
-//   debugger_->publishMergedObjects(merged_objects);
+  // // divide under segmented objects
+  // tier4_perception_msgs::msg::DetectedObjectsWithFeature divided_objects;
+  // autoware_auto_perception_msgs::msg::DetectedObjects temp_no_found_tracked_objects;
+  // divideUnderSegmentedObjects(
+  //   no_found_tracked_objects, *input_msg, temp_no_found_tracked_objects, divided_objects);
+  // debugger_->publishDividedObjects(divided_objects);
 
-//   // divide under segmented objects
-//   tier4_perception_msgs::msg::DetectedObjectsWithFeature divided_objects;
-//   autoware_auto_perception_msgs::msg::DetectedObjects temp_no_found_tracked_objects;
-//   divideUnderSegmentedObjects(
-//     no_found_tracked_objects, *input_msg, temp_no_found_tracked_objects, divided_objects);
-//   debugger_->publishDividedObjects(divided_objects);
+  // // merge under/over segmented objects to build output objects
+  // for (const auto & merged_object : merged_objects.feature_objects) {
+  //   detected_objects.objects.push_back(merged_object.object);
+  // }
+  // for (const auto & divided_object : divided_objects.feature_objects) {
+  //   detected_objects.objects.push_back(divided_object.object);
+  // }
 
-//   // merge under/over segmented objects to build output objects
-//   for (const auto & merged_object : merged_objects.feature_objects) {
-//     detected_objects.objects.push_back(merged_object.object);
-//   }
-//   for (const auto & divided_object : divided_objects.feature_objects) {
-//     detected_objects.objects.push_back(divided_object.object);
-//   }
-
-//   objects_pub_->publish(detected_objects);
-// }
+  objects_pub_->publish(detected_objects);
+}
 
 // void LikelihoodFieldTracker::divideUnderSegmentedObjects(
 //   const autoware_auto_perception_msgs::msg::DetectedObjects & tracked_objects,
