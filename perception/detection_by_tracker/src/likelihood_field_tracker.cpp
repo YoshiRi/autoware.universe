@@ -459,7 +459,7 @@ LikelihoodFieldTracker::LikelihoodFieldTracker(const rclcpp::NodeOptions & node_
     std::bind(&TrackerHandler::onTrackedObjects, &tracker_handler_, std::placeholders::_1));
 
   scans_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
-    "/perception/occupancy_grid_map/virtual_scan/laserscan", rclcpp::QoS{1},
+    "/perception/occupancy_grid_map/virtual_scan/laserscan", rclcpp::QoS{1}.best_effort(),
     std::bind(&LikelihoodFieldTracker::onObjects, this, std::placeholders::_1) );
   
   // initial_objects_sub_ =
@@ -476,11 +476,15 @@ LikelihoodFieldTracker::LikelihoodFieldTracker(const rclcpp::NodeOptions & node_
   // cluster_ = std::make_shared<euclidean_cluster::VoxelGridBasedEuclideanCluster>(
   //   false, 10, 10000, 0.7, 0.3, 0);
   // debugger_ = std::make_shared<Debugger>(this);
+
+
 }
 
 void LikelihoodFieldTracker::onObjects(
   const sensor_msgs::msg::LaserScan::ConstSharedPtr input_msg)
 {
+
+
   autoware_auto_perception_msgs::msg::DetectedObjects detected_objects;
   detected_objects.header = input_msg->header;
 
@@ -500,7 +504,9 @@ void LikelihoodFieldTracker::onObjects(
 
     // LaserScan to std::vector
     std::vector<Eigen::Vector2d> scan_vec;
-    for(int i=0; input_msg->ranges.size();i++){
+    for(long unsigned int i=0; i < input_msg->ranges.size();i++){
+  
+    //std::cout<<i<< std::endl;
       double th = input_msg->angle_min+ (double)i*input_msg->angle_increment;
       double range = input_msg->ranges[i];
       if( range > input_msg->range_max || range < input_msg->range_min){
@@ -510,10 +516,13 @@ void LikelihoodFieldTracker::onObjects(
       scan_vec.push_back(xy);
     }
 
+    RCLCPP_WARN(
+      rclcpp::get_logger("LFTracker"),
+      "SubsCribed Scan");
 
     // tmp
     // lf fitting for each objects
-    for(int i=0; objects.objects.size();i++){
+    for(long unsigned int i=0; i < objects.objects.size();i++){
       // apply only for vehicle
       const auto label = objects.objects[i].classification.front().label;
       const bool is_vehicle =   Label::CAR == label || Label::TRUCK == label || Label::BUS == label || Label::TRAILER == label;
