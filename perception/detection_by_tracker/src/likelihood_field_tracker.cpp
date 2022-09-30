@@ -78,6 +78,13 @@ Eigen::Matrix3d extractXYYawCovariance(const std::array<double, 36> covariance)
   return cov;
 }
 
+void eigenMatrixToROS2Covariance(const Eigen::Matrix3d  covariance, std::array<double, 36> & cov)
+{
+  cov[0] = covariance(0,0);   cov[1] = covariance(0,1);  cov[5] = covariance(0,2);
+  cov[6] = covariance(1,0);   cov[7] = covariance(1,1);  cov[11] = covariance(1,2);
+  cov[30] = covariance(2,0);   cov[31] = covariance(2,1);  cov[35] = covariance(2,2);
+}
+
 /// sum of cost to calc likelihood 
 double sumOfCostToLikelihood(double cost_sum, double sigma)
 {
@@ -365,14 +372,20 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::ve
   Eigen::Vector3d mean;
   Eigen::Matrix3d cov;
   double w2 = 0;
+  double sum_likelihoods = 0;
 
   for(std::size_t i=0; i < loop; i++){
-    mean += vectors[i] * likelihoods[i]; 
-    w2 += likelihoods[i]*likelihoods[i];
+    sum_likelihoods +=  likelihoods[i]; 
+  }
+
+
+  for(std::size_t i=0; i < loop; i++){
+    mean += vectors[i] * likelihoods[i] / sum_likelihoods; 
+    w2 += likelihoods[i]*likelihoods[i] / sum_likelihoods  / sum_likelihoods;
   }
 
   for(std::size_t i=0; i < loop; i++){
-    cov += (mean-vectors[i]) * (mean-vectors[i]).transpose() * likelihoods[i]/(1-w2);
+    cov += (mean-vectors[i]) * (mean-vectors[i]).transpose() * likelihoods[i]  / sum_likelihoods /(1-w2);
   }
 
   return std::make_tuple(mean,cov); 
@@ -427,16 +440,17 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 autoware_auto_perception_msgs::msg::TrackedObject SingleLFTracker::toTrackedObject(autoware_auto_perception_msgs::msg::TrackedObject &object)
 {
   autoware_auto_perception_msgs::msg::TrackedObject estimated_object;
-  estimated_object.object_id = object.object_id;
-  estimated_object.existence_probability = object.existence_probability;
-  estimated_object.classification = object.classification;
-  estimated_object.shape = object.shape;
-  estimated_object.kinematics.pose_with_covariance = object.kinematics.pose_with_covariance;
+  estimated_object = object;
+  // estimated_object.object_id = object.object_id;
+  // estimated_object.existence_probability = object.existence_probability;
+  // estimated_object.classification = object.classification;
+  // estimated_object.shape = object.shape;
+  // estimated_object.kinematics.pose_with_covariance = object.kinematics.pose_with_covariance;
   estimated_object.kinematics.pose_with_covariance.pose.position.x = position_.x();
   estimated_object.kinematics.pose_with_covariance.pose.position.y = position_.y();
   const float yaw_hat = tier4_autoware_utils::normalizeRadian(orientation_);
   estimated_object.kinematics.pose_with_covariance.pose.orientation = tier4_autoware_utils::createQuaternionFromYaw(yaw_hat);
-
+  eigenMatrixToROS2Covariance(covariance_, estimated_object.kinematics.pose_with_covariance.covariance);
   return estimated_object;
 }
 
@@ -476,15 +490,11 @@ LikelihoodFieldTracker::LikelihoodFieldTracker(const rclcpp::NodeOptions & node_
   // cluster_ = std::make_shared<euclidean_cluster::VoxelGridBasedEuclideanCluster>(
   //   false, 10, 10000, 0.7, 0.3, 0);
   // debugger_ = std::make_shared<Debugger>(this);
-
-
 }
 
 void LikelihoodFieldTracker::onObjects(
   const sensor_msgs::msg::LaserScan::ConstSharedPtr input_msg)
 {
-
-
   autoware_auto_perception_msgs::msg::DetectedObjects detected_objects;
   detected_objects.header = input_msg->header;
 
