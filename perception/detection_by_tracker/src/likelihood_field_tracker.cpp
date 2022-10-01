@@ -239,11 +239,13 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
 }
 
 
-VehicleParticle::VehicleParticle(const Eigen::Vector2d center, const double width, const double length, const double orientation)
+VehicleParticle::VehicleParticle(
+  const Eigen::Vector2d center, const double width, const double length, const double orientation)
+  : fine_likelihood_(width, length, outside_margin_, inside_margin_), coarse_likelihood_(width, length, outside_margin_, inside_margin_)
 {
   // init likelihood
-  fine_likelihood_.reset(new FineCarLikelihoodField(width, length, outside_margin_, inside_margin_));
-  coarse_likelihood_.reset(new CoarseCarLikelihoodField(width, length, outside_margin_, inside_margin_));
+  //fine_likelihood_ = FineCarLikelihoodField(width, length, outside_margin_, inside_margin_);
+  //coarse_likelihood_ =  CoarseCarLikelihoodField(width, length, outside_margin_, inside_margin_);
   // calc corner points
   setCornerPoints(center, width, length, orientation);
   // set geometry
@@ -304,7 +306,7 @@ double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> 
 {
   auto corner_index = getNearestCornerIndex();
   auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
-  auto likelihood = coarse_likelihood_->calcLikelihoods(local_measurements, corner_index);
+  auto likelihood = coarse_likelihood_.calcLikelihoods(local_measurements, corner_index);
   return likelihood;
 }
 
@@ -318,7 +320,7 @@ double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & 
 {
   auto corner_index = getNearestCornerIndex();
   auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
-  auto likelihood = fine_likelihood_->calcLikelihoods(local_measurements, corner_index);
+  auto likelihood = fine_likelihood_.calcLikelihoods(local_measurements, corner_index);
   return likelihood;
 
 }
@@ -416,18 +418,20 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   // fine tracking
   createVehiclePositionParticle(particle_num_);
   // tmp
-  std::vector<double> likelihoods2;
-  std::vector<Eigen::Vector3d> states2;
+  likelihoods.clear();
+  states.clear();
+  //std::vector<double> likelihoods2;
+  //std::vector<Eigen::Vector3d> states2;
 
   for(std::uint32_t i=0; i < particle_num_; i++){
     double likelihood = vehicle_particle_[i].calcFineLikelihood(scan);
-    likelihoods2.push_back(likelihood);
+    likelihoods.push_back(likelihood);
     Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
-    states2.push_back(state);
+    states.push_back(state);
   }
 
 
-  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods2, states2);
+  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
   
   auto mstate_ = std::get<0>(mean_cov_);
   covariance_ = std::get<1>(mean_cov_);
@@ -535,6 +539,7 @@ void LikelihoodFieldTracker::onObjects(
     for(long unsigned int i=0; i < objects.objects.size();i++){
       // apply only for vehicle
       const auto label = objects.objects[i].classification.front().label;
+      std::cout << label <<std::endl;
       const bool is_vehicle =   Label::CAR == label || Label::TRUCK == label || Label::BUS == label || Label::TRAILER == label;
       if(!is_vehicle){
         continue;

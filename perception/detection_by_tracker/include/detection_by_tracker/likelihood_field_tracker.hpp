@@ -133,11 +133,11 @@ class FineCarLikelihoodField
 class VehicleParticle
 {
 private:
-  double inside_margin_ = 0.25;
-  double outside_margin_ = 1.0;
+  const double inside_margin_ = 0.25;
+  const double outside_margin_ = 1.0;
   double measurement_noise_ = 0.1;
-  std::shared_ptr<FineCarLikelihoodField> fine_likelihood_; // maybe it's ok to use std::optional instead
-  std::shared_ptr<CoarseCarLikelihoodField> coarse_likelihood_;
+  FineCarLikelihoodField fine_likelihood_; // maybe it's ok to use std::optional instead
+  CoarseCarLikelihoodField coarse_likelihood_;
   std::array<Eigen::Vector2d,4> corner_points_;
 
 
