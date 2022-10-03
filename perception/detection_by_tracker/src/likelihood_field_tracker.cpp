@@ -86,10 +86,13 @@ void eigenMatrixToROS2Covariance(const Eigen::Matrix3d  covariance, std::array<d
 }
 
 /// sum of cost to calc likelihood 
-double sumOfCostToLikelihood(double cost_sum, double sigma)
+double sumOfCostToLikelihood(double cost_sum, double sigma, double scaling_factor=1.0)
 {
-  return std::exp(-cost_sum/2.0/sigma/sigma);
+  return std::exp(-cost_sum/2.0/sigma/sigma * scaling_factor);
 }
+
+/// convert Pose without Stamped Message to Pose
+
 
 }  // namespace
 
@@ -234,7 +237,7 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
     }
   }
 
-  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_);
+  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,localized_measurements.size());
   return likelihood;
 }
 
@@ -334,6 +337,8 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   length_ = object.shape.dimensions.x;
   width_ = object.shape.dimensions.y;
   covariance_ = extractXYYawCovariance(object.kinematics.pose_with_covariance.covariance);
+  // control parameter
+  particle_num_ = 100;
 }
 
 
@@ -534,6 +539,9 @@ void LikelihoodFieldTracker::onObjects(
       rclcpp::get_logger("LFTracker"),
       "SubsCribed Scan");
 
+    // map -> base_link (may be unneccesary)
+    //geometry_msgs::msg::TransformStamped  map_to_baselink = tf_buffer_.lookupTransform(input_msg->header.frame_id, "base_link", input_msg->header.stamp);
+    
     // tmp
     // lf fitting for each objects
     for(long unsigned int i=0; i < objects.objects.size();i++){
@@ -546,6 +554,9 @@ void LikelihoodFieldTracker::onObjects(
       }
 
       // Create Tracker
+
+
+      tf2::doTransform(robot_pose, robot_pose, base_link_to_leap_motion); 
       SingleLFTracker vehicle(objects.objects[i]);
       vehicle.estimateState(scan_vec);
       estimated_objects.objects.push_back(vehicle.toTrackedObject(objects.objects[i]));
