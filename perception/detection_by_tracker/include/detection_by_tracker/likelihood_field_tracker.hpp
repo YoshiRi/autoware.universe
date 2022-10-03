@@ -87,7 +87,7 @@ class CoarseCarLikelihoodField
     /// cost value of {contour, outside}
     std::vector<double> costs_ = {0.01, 0.1};
     std::array<RectangleZone,2> contour_zones_;
-    const std::vector<std::vector<std::uint8_t>> indexes_ = {{0,1},{1,2},{2,3},{3,0}};
+    const std::array<std::array<std::uint8_t, 2>, 4> indexes_ = {{{0,1},{1,2},{2,3},{3,0}}};
 
   
   public:
@@ -113,7 +113,7 @@ class FineCarLikelihoodField
     RectangleZone car_contour_; /// Rectangle Area
     std::array<RectangleZone,4> penalty_zones_;
     std::array<RectangleZone,4> contour_zones_;
-    const std::vector<std::vector<std::uint8_t>> indexes_ = {{0,1},{1,2},{2,3},{3,0}};
+    const std::array<std::array<std::uint8_t, 2>, 4> indexes_ = {{{0,1},{1,2},{2,3},{3,0}}};
 
   public:
     explicit FineCarLikelihoodField(const double width, const double length,
