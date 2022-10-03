@@ -88,10 +88,40 @@ void eigenMatrixToROS2Covariance(const Eigen::Matrix3d  covariance, std::array<d
 /// sum of cost to calc likelihood 
 double sumOfCostToLikelihood(double cost_sum, double sigma, double scaling_factor=1.0)
 {
-  return std::exp(-cost_sum/2.0/sigma/sigma * scaling_factor);
+  return std::exp(-cost_sum/2.0/sigma/sigma / scaling_factor);
 }
 
 /// convert Pose without Stamped Message to Pose
+template <class T>
+void transformObjectsFromMapToBaselink
+(T & object_map, T & object_baselink, 
+  std_msgs::msg::Header header, tf2_ros::Buffer & buffer)
+{
+  geometry_msgs::msg::PoseWithCovarianceStamped before, after;
+  before.pose = object_map.kinematics.pose_with_covariance;
+  before.header = header;
+  before.header.frame_id = "map";
+  after = buffer.transform(before, "base_link");
+  object_baselink = object_map;
+  object_baselink.kinematics.pose_with_covariance = after.pose;
+  object_baselink.kinematics.pose_with_covariance.pose.position.z = before.pose.pose.position.z;
+}
+
+
+template <class T>
+void transformObjectsFromBaselinkToMap
+(T & object_baselink, T & object_map, 
+  std_msgs::msg::Header header, tf2_ros::Buffer & buffer)
+{
+  geometry_msgs::msg::PoseWithCovarianceStamped before, after;
+  before.pose = object_baselink.kinematics.pose_with_covariance;
+  before.header = header;
+  before.header.frame_id = "base_link";
+  after = buffer.transform(before, "map");
+  object_map = object_baselink;
+  object_map.kinematics.pose_with_covariance = after.pose;
+  object_map.kinematics.pose_with_covariance.pose.position.z = before.pose.pose.position.z;
+}
 
 
 }  // namespace
@@ -166,7 +196,7 @@ double CoarseCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector
     }
   }
 
-  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_);
+  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,(double)localized_measurements.size());
   return likelihood;
 }
 
@@ -237,7 +267,7 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
     }
   }
 
-  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,localized_measurements.size());
+  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,(double)localized_measurements.size());
   return likelihood;
 }
 
@@ -337,6 +367,12 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   length_ = object.shape.dimensions.x;
   width_ = object.shape.dimensions.y;
   covariance_ = extractXYYawCovariance(object.kinematics.pose_with_covariance.covariance);
+  
+  // tmp 
+  covariance_(0,0) = 0.1; // 0.3m error
+  covariance_(1,1) = 0.1;
+  covariance_(2,2) = DEG2RAD(15.)*DEG2RAD(15.); // 15deg 
+  
   // control parameter
   particle_num_ = 100;
 }
@@ -511,6 +547,7 @@ void LikelihoodFieldTracker::onObjects(
   autoware_auto_perception_msgs::msg::DetectedObjects tracked_objects;
   {
     autoware_auto_perception_msgs::msg::TrackedObjects objects, estimated_objects;
+    estimated_objects.header = input_msg->header;
     // Do prediction
     const bool available_trackers =
       tracker_handler_.estimateTrackedObjects(input_msg->header.stamp, objects);
@@ -554,12 +591,15 @@ void LikelihoodFieldTracker::onObjects(
       }
 
       // Create Tracker
+      autoware_auto_perception_msgs::msg::TrackedObject local_object, estimated_local_object, estimated_object;
 
-
-      tf2::doTransform(robot_pose, robot_pose, base_link_to_leap_motion); 
-      SingleLFTracker vehicle(objects.objects[i]);
+      transformObjectsFromMapToBaselink(objects.objects[i], local_object, input_msg->header, tf_buffer_);
+      SingleLFTracker vehicle(local_object);
       vehicle.estimateState(scan_vec);
-      estimated_objects.objects.push_back(vehicle.toTrackedObject(objects.objects[i]));
+      estimated_local_object = vehicle.toTrackedObject(objects.objects[i]);
+
+      transformObjectsFromBaselinkToMap(estimated_local_object, estimated_object, input_msg->header, tf_buffer_);
+      estimated_objects.objects.push_back(estimated_object);
     }
     
 
@@ -569,7 +609,7 @@ void LikelihoodFieldTracker::onObjects(
 
   // // merge over segmented objects
   // tier4_perception_msgs::msg::DetectedObjectsWithFeature merged_objects;
-  // autoware_auto_perception_msgs::msg::DetectedObjects no_found_tracked_objects;
+  // autoware_auto_perception_msgs::msg::DetectedObjects no_found_tracked_objects ;
   // mergeOverSegmentedObjects(tracked_objects, *input_msg, no_found_tracked_objects, merged_objects);
   // debugger_->publishMergedObjects(merged_objects);
 
