@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="input/tracked_objects" default="/perception/object_recognition/tracking/objects"/>
+  <arg name="input/initial_objects" default="/perception/object_recognition/detection/clustering/objects_with_feature"/>
+  <arg name="output" default="objects"/>
+
+  <node pkg="detection_by_tracker" exec="likelihood_field_tracker" name="lf_tracker_node" output="screen" >
+  <remap from="~/input/tracked_objects" to="$(var input/tracked_objects)"/>
+  <remap from="~/input/initial_objects" to="$(var input/initial_objects)"/>
+  <remap from="~/input/scan" to="/perception/occupancy_grid_map/virtual_scan/laserscan" />
+  <remap from="~/output2" to="/lftracker"/>
+  </node>
+</launch>
