@@ -548,6 +548,7 @@ void LikelihoodFieldTracker::onObjects(
   {
     autoware_auto_perception_msgs::msg::TrackedObjects objects, estimated_objects;
     estimated_objects.header = input_msg->header;
+    estimated_objects.header.frame_id = "map";
     // Do prediction
     const bool available_trackers =
       tracker_handler_.estimateTrackedObjects(input_msg->header.stamp, objects);
