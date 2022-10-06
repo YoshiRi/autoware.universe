@@ -50,6 +50,7 @@
 #include <vector>
 #include <array>
 #include <random>
+#include <algorithm>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -85,7 +86,7 @@ class CoarseCarLikelihoodField
   private:
     double measurement_covariance_ = 0.1;
     /// cost value of {contour, outside}
-    std::vector<double> costs_ = {0.01, 0.1};
+    std::vector<double> costs_ = {-0.02, 0};
     std::array<RectangleZone,2> contour_zones_;
     const std::array<std::array<std::uint8_t, 2>, 4> indexes_ = {{{0,1},{1,2},{2,3},{3,0}}};
 
@@ -108,7 +109,7 @@ class FineCarLikelihoodField
 {
   private:
     /// cost value represent {penalty, contour, inside, outside}
-    std::vector<double> costs_ = {0.1, 0.01, 0.03, 0.06}; 
+    std::vector<double> costs_ = {0.02,-0.04, -0.01, 0}; 
     double measurement_covariance_ = 0.1;
     RectangleZone car_contour_; /// Rectangle Area
     std::array<RectangleZone,4> penalty_zones_;
@@ -145,6 +146,7 @@ private:
 public:
   Eigen::Vector2d center_;
   double orientation_;
+  std::uint8_t corner_index_;
   explicit VehicleParticle(const Eigen::Vector2d center, const double width, const double length, const double orientation);
   void setCornerPoints(const Eigen::Vector2d center, const double width, const double length, const double orientation);
   std::uint8_t getNearestCornerIndex(const Eigen::Vector2d & origin = Eigen::Vector2d(0.0,0.0)); /// ego origin is set 0,0 by default
