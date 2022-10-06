@@ -307,7 +307,7 @@ void VehicleParticle::setCornerPoints(const Eigen::Vector2d center, const double
   auto R = rotate.toRotationMatrix(); /// Rotation matrix R^T
   // corners in local coordinate
   auto p0 = Eigen::Vector2d(length/2.0,-width/2.0);   auto p1 = Eigen::Vector2d(-length/2.0,-width/2.0);
-  auto p2 = Eigen::Vector2d(-length/2.0,+width/2.0);  auto p3 = Eigen::Vector2d(length/2.0,width/2.0);
+  auto p2 = Eigen::Vector2d(-length/2.0,width/2.0);  auto p3 = Eigen::Vector2d(length/2.0,width/2.0);
   // set corner points coordinates
   corner_points_[0] = R*p0 + center;
   corner_points_[1] = R*p1 + center;
