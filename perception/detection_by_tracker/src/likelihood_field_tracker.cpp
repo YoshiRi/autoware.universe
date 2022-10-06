@@ -399,9 +399,9 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
   // Strictly, we should use multivariate normal distribution
   // Relaxed Results
   std::default_random_engine engine(seed_gen());
-  std::normal_distribution<> x_distribution(0.0, std::sqrt(covariance_(0, 0)));
-  std::normal_distribution<> y_distribution(0.0, std::sqrt(covariance_(1, 1)));
-  std::normal_distribution<> yaw_distribution(0.0, std::sqrt(covariance_(2, 2)));
+  std::uniform_real_distribution<> x_distribution(-covariance_(0, 0), covariance_(0, 0)); //std::normal_distribution<> x_distribution(0.0, std::sqrt(covariance_(0, 0)));
+  std::uniform_real_distribution<> y_distribution(-covariance_(1, 1), covariance_(1, 1)); //std::normal_distribution<> y_distribution(0.0, std::sqrt(covariance_(1, 1)));
+  //std::normal_distribution<> yaw_distribution(0.0, std::sqrt(covariance_(2, 2)));
   // generate vp
   VehicleParticle vp(position_ , width_, length_, orientation_);
   std::uint8_t index = vp.getNearestCornerIndex();
