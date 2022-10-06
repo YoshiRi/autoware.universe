@@ -410,7 +410,7 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
   for(std::uint32_t i =0; i<particle_num; i++){
 
     Eigen::Vector2d variation{x_distribution(engine),y_distribution(engine)};
-    double orientation = orientation_// + yaw_distribution(engine);
+    double orientation = orientation_; // + yaw_distribution(engine);
     VehicleParticle vp(position_ + variation, width_, length_, orientation);
     vp.corner_index_ = index;
     vehicle_particle_.push_back(vp);
@@ -495,26 +495,26 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   std::vector<double> likelihoods;
   std::vector<Eigen::Vector3d> states;
 
-  for(std::uint32_t i=0; i < particle_num_; i++){
-    double likelihood = vehicle_particle_[i].calcCoarseLikelihood(scan);
-    likelihoods.push_back(likelihood);
-    Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
-    states.push_back(state);
-  }
+  // for(std::uint32_t i=0; i < particle_num_; i++){
+  //   double likelihood = vehicle_particle_[i].calcCoarseLikelihood(scan);
+  //   likelihoods.push_back(likelihood);
+  //   Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
+  //   states.push_back(state);
+  // }
 
-  //auto mean_cov  = calcMeanAndCovFromParticles(likelihoods, states);
-  auto mean_cov  = calcBestParticles(likelihoods, states);
+  // //auto mean_cov  = calcMeanAndCovFromParticles(likelihoods, states);
+  // auto mean_cov  = calcBestParticles(likelihoods, states);
   
-  auto mstate = std::get<0>(mean_cov);
-  //covariance_ = std::get<1>(mean_cov);
-  position_ = Eigen::Vector2d(mstate.x(),mstate.y());
-  orientation_ = mstate.z();
+  // auto mstate = std::get<0>(mean_cov);
+  // //covariance_ = std::get<1>(mean_cov);
+  // position_ = Eigen::Vector2d(mstate.x(),mstate.y());
+  // orientation_ = mstate.z();
 
-  // fine tracking
-  createVehiclePositionParticle(particle_num_);
-  // tmp
-  likelihoods.clear();
-  states.clear();
+  // // fine tracking
+  // createVehiclePositionParticle(particle_num_);
+  // // tmp
+  // likelihoods.clear();
+  // states.clear();
   //std::vector<double> likelihoods2;
   //std::vector<Eigen::Vector3d> states2;
 
