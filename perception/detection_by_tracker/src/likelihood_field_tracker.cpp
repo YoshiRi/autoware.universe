@@ -390,7 +390,7 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   covariance_(2,2) = DEG2RAD(10.)*DEG2RAD(10.); // 10deg 
   
   // control parameter
-  particle_num_ = 1000;
+  particle_num_ = 100;
 }
 
 
@@ -410,7 +410,7 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
   for(std::uint32_t i =0; i<particle_num; i++){
 
     Eigen::Vector2d variation{x_distribution(engine),y_distribution(engine)};
-    double orientation = orientation_ + yaw_distribution(engine);
+    double orientation = orientation_// + yaw_distribution(engine);
     VehicleParticle vp(position_ + variation, width_, length_, orientation);
     vp.corner_index_ = index;
     vehicle_particle_.push_back(vp);
@@ -526,8 +526,8 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   }
 
 
-  //auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
-    auto mean_cov_  = calcBestParticles(likelihoods, states);
+//  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
+auto mean_cov_  = calcBestParticles(likelihoods, states);
 
 
   auto mstate_ = std::get<0>(mean_cov_);
