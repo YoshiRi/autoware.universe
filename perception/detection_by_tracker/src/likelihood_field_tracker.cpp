@@ -318,12 +318,12 @@ void VehicleParticle::setCornerPoints(const Eigen::Vector2d center, const double
 std::uint8_t VehicleParticle::getNearestCornerIndex(const Eigen::Vector2d & center)
 {
   std::uint8_t closest_index = 0;
-  double max_dist = 100; // distance[m]
+  double min_dist = 100; // distance[m]
   double buff = 0;
   for(std::uint8_t i=0; i<4; i++){
     buff = (corner_points_[i] - center).norm();
-    if(buff<max_dist){
-      max_dist = buff;
+    if(buff<min_dist){
+      min_dist = buff;
       closest_index = i;
     }
   }
@@ -390,7 +390,7 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   covariance_(2,2) = DEG2RAD(10.)*DEG2RAD(10.); // 10deg 
   
   // control parameter
-  particle_num_ = 100;
+  particle_num_ = 1000;
 }
 
 
