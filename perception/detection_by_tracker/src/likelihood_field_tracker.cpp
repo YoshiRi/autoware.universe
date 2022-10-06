@@ -88,7 +88,22 @@ void eigenMatrixToROS2Covariance(const Eigen::Matrix3d  covariance, std::array<d
 /// sum of cost to calc likelihood 
 double sumOfCostToLikelihood(double cost_sum, double sigma, double scaling_factor=1.0)
 {
-  return std::exp(-cost_sum/2.0/sigma/sigma / scaling_factor);
+  (void)scaling_factor;
+  return std::exp(-cost_sum/2.0/sigma/sigma);
+}
+
+/// find max indices
+template <class T>
+std::vector<std::size_t> findMaxIndices(std::vector<T> v){
+    std::vector<std::size_t> pos;
+
+    auto it = std::max_element(std::begin(v), std::end(v));
+    while (it != std::end(v))
+    {
+        pos.push_back(std::distance(std::begin(v), it));
+        it = std::find(std::next(it), std::end(v), *it);
+    }
+    return pos;
 }
 
 /// convert Pose without Stamped Message to Pose
@@ -337,9 +352,9 @@ std::vector<Eigen::Vector2d> VehicleParticle::toLocalCoordinate(const std::vecto
  */
 double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> & measurements)
 {
-  auto corner_index = getNearestCornerIndex();
+  //auto corner_index = getNearestCornerIndex();
   auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
-  auto likelihood = coarse_likelihood_.calcLikelihoods(local_measurements, corner_index);
+  auto likelihood = coarse_likelihood_.calcLikelihoods(local_measurements, corner_index_);
   return likelihood;
 }
 
@@ -351,9 +366,9 @@ double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> 
  */
 double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & measurements)
 {
-  auto corner_index = getNearestCornerIndex();
+  //auto corner_index = getNearestCornerIndex();
   auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
-  auto likelihood = fine_likelihood_.calcLikelihoods(local_measurements, corner_index);
+  auto likelihood = fine_likelihood_.calcLikelihoods(local_measurements, corner_index_);
   return likelihood;
 
 }
@@ -366,12 +381,13 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   orientation_ = tf2::getYaw(object.kinematics.pose_with_covariance.pose.orientation);
   length_ = object.shape.dimensions.x;
   width_ = object.shape.dimensions.y;
+  //covariance_ = 
   covariance_ = extractXYYawCovariance(object.kinematics.pose_with_covariance.covariance);
   
   // tmp 
-  covariance_(0,0) = 0.1; // 0.3m error
-  covariance_(1,1) = 0.1;
-  covariance_(2,2) = DEG2RAD(15.)*DEG2RAD(15.); // 15deg 
+  covariance_(0,0) = 2; // 0.3m error
+  covariance_(1,1) = 2;
+  covariance_(2,2) = DEG2RAD(10.)*DEG2RAD(10.); // 10deg 
   
   // control parameter
   particle_num_ = 100;
@@ -386,6 +402,9 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
   std::normal_distribution<> x_distribution(0.0, std::sqrt(covariance_(0, 0)));
   std::normal_distribution<> y_distribution(0.0, std::sqrt(covariance_(1, 1)));
   std::normal_distribution<> yaw_distribution(0.0, std::sqrt(covariance_(2, 2)));
+  // generate vp
+  VehicleParticle vp(position_ , width_, length_, orientation_);
+  std::uint8_t index = vp.getNearestCornerIndex();
 
   // generate random vehicle particles
   for(std::uint32_t i =0; i<particle_num; i++){
@@ -393,6 +412,7 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
     Eigen::Vector2d variation{x_distribution(engine),y_distribution(engine)};
     double orientation = orientation_ + yaw_distribution(engine);
     VehicleParticle vp(position_ + variation, width_, length_, orientation);
+    vp.corner_index_ = index;
     vehicle_particle_.push_back(vp);
   }
 
@@ -434,6 +454,39 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::ve
   return std::make_tuple(mean,cov); 
 }
 
+
+std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcBestParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
+{
+
+  Eigen::Vector3d mean;
+  Eigen::Matrix3d cov;
+  double w2 = 0;
+  double sum_likelihoods = 0;
+
+  std::vector<std::size_t> max_indexes = findMaxIndices(likelihoods);
+
+
+  for(std::size_t i: max_indexes){
+    sum_likelihoods +=  likelihoods[i]; 
+  }
+
+
+  for(std::size_t i: max_indexes){
+    mean += vectors[i] * likelihoods[i] / sum_likelihoods; 
+    w2 += likelihoods[i]*likelihoods[i] / sum_likelihoods  / sum_likelihoods;
+  }
+
+  for(std::size_t i: max_indexes){
+    cov += (mean-vectors[i]) * (mean-vectors[i]).transpose() * likelihoods[i]  / sum_likelihoods /(1-w2);
+  }
+  cov(0,0) = 0.4;
+  cov(1,1) = 0.4;
+
+  return std::make_tuple(mean,cov); 
+}
+
+
+
 void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 {
   // temporary
@@ -449,10 +502,11 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
     states.push_back(state);
   }
 
-  auto mean_cov  = calcMeanAndCovFromParticles(likelihoods, states);
+  //auto mean_cov  = calcMeanAndCovFromParticles(likelihoods, states);
+  auto mean_cov  = calcBestParticles(likelihoods, states);
   
   auto mstate = std::get<0>(mean_cov);
-  covariance_ = std::get<1>(mean_cov);
+  //covariance_ = std::get<1>(mean_cov);
   position_ = Eigen::Vector2d(mstate.x(),mstate.y());
   orientation_ = mstate.z();
 
@@ -472,8 +526,10 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   }
 
 
-  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
-  
+  //auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
+    auto mean_cov_  = calcBestParticles(likelihoods, states);
+
+
   auto mstate_ = std::get<0>(mean_cov_);
   covariance_ = std::get<1>(mean_cov_);
   position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
@@ -606,6 +662,9 @@ void LikelihoodFieldTracker::onObjects(
 
     // to simplify post processes, convert tracked_objects to DetectedObjects message.
     detected_objects = perception_utils::toDetectedObjects(estimated_objects);
+
+    // clear objects
+    //tracker_handler_
   }
 
   // // merge over segmented objects
