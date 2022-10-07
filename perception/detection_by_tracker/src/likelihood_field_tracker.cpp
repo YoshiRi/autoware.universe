@@ -242,10 +242,10 @@ void FineCarLikelihoodField::setContourZones(const double width, const double le
 void FineCarLikelihoodField::setPenaltyZones(const double width, const double length, const double outside_margin, const double inside_margin)
 {
   auto W2 = width/2.0; auto L2 = length/2.0;
-  penalty_zones_[0].setZone(-L2-outside_margin, L2+outside_margin, -W2-outside_margin, -W2);
-  penalty_zones_[1].setZone(-L2-outside_margin, -L2, -W2-outside_margin, W2+outside_margin);
-  penalty_zones_[2].setZone(-L2-outside_margin, L2+outside_margin, W2, W2+outside_margin);
-  penalty_zones_[3].setZone(L2, L2+outside_margin, -W2-outside_margin, W2+outside_margin); 
+  penalty_zones_[0].setZone(-L2, L2, -W2-outside_margin, -W2);
+  penalty_zones_[1].setZone(-L2-outside_margin, -L2, -W2, W2);
+  penalty_zones_[2].setZone(-L2, L2, W2, W2+outside_margin);
+  penalty_zones_[3].setZone(L2, L2+outside_margin, -W2, W2); 
   (void)inside_margin; // currently unused
 }
 
