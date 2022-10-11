@@ -169,7 +169,8 @@ class SingleLFTracker
 
   public:
     SingleLFTracker(const autoware_auto_perception_msgs::msg::TrackedObject & object);
-    void createVehiclePositionParticle(const std::uint32_t particle_num);
+    void createRandomVehiclePositionParticle(const std::uint32_t particle_num);
+    void createGridVehiclePositionParticle();
     //void createVehicleShapeParticle();
     void estimateState(const std::vector<Eigen::Vector2d> & scan);
     autoware_auto_perception_msgs::msg::TrackedObject toTrackedObject(autoware_auto_perception_msgs::msg::TrackedObject &object);
