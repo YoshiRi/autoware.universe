@@ -385,16 +385,16 @@ SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::Track
   covariance_ = extractXYYawCovariance(object.kinematics.pose_with_covariance.covariance);
   
   // tmp 
-  covariance_(0,0) = 2; // 0.3m error
-  covariance_(1,1) = 2;
-  covariance_(2,2) = DEG2RAD(10.)*DEG2RAD(10.); // 10deg 
+  // covariance_(0,0) = 2; // 0.3m error
+  // covariance_(1,1) = 2;
+  // covariance_(2,2) = DEG2RAD(10.)*DEG2RAD(10.); // 10deg 
   
   // control parameter
   particle_num_ = 100;
 }
 
 
-void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle_num)
+void SingleLFTracker::createRandomVehiclePositionParticle(const std::uint32_t particle_num)
 { 
   // Strictly, we should use multivariate normal distribution
   // Relaxed Results
@@ -415,6 +415,42 @@ void SingleLFTracker::createVehiclePositionParticle(const std::uint32_t particle
     vp.corner_index_ = index;
     vehicle_particle_.push_back(vp);
   }
+
+}
+
+
+double get_interpV(int i, int len, double wid){
+  return (  2.0*(double)i/(len-1.0) - 1.0 ) * wid;
+}
+
+void SingleLFTracker::createGridVehiclePositionParticle()
+{ 
+  // Strictly, we should use multivariate normal distribution
+  // Relaxed Results
+  double x_wid, y_wid, yaw_wid;
+  double max_wid = 2; // 2m is max 
+  int ilen = 10;
+
+  x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
+  y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
+  yaw_wid = DEG2RAD(15.0); 
+
+  // generate vp
+  VehicleParticle vp(position_ , width_, length_, orientation_);
+  std::uint8_t index = vp.getNearestCornerIndex();
+
+  for(int i=0;i<ilen;i++){
+    for(int j=0; j<ilen;j++){
+      Eigen::Vector2d variation{get_interpV(i,ilen,x_wid),get_interpV(j,ilen,y_wid)};
+      for(int k=0;k<ilen;k++){
+        double orientation = orientation_ + get_interpV(k, ilen, yaw_wid);
+        VehicleParticle vp(position_ + variation, width_, length_, orientation);
+        vp.corner_index_ = index;
+        vehicle_particle_.push_back(vp);
+      }
+    }
+  }
+  particle_num_ = ilen*ilen*ilen;
 
 }
 
@@ -490,7 +526,9 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcBestParticles(std::vector<doubl
 void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 {
   // temporary
-  createVehiclePositionParticle(particle_num_);
+  //createRandomVehiclePositionParticle(particle_num_);
+  createGridVehiclePositionParticle();
+
 
   std::vector<double> likelihoods;
   std::vector<Eigen::Vector3d> states;
@@ -511,7 +549,7 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   // orientation_ = mstate.z();
 
   // // fine tracking
-  // createVehiclePositionParticle(particle_num_);
+  // createRandomVehiclePositionParticle(particle_num_);
   // // tmp
   // likelihoods.clear();
   // states.clear();
