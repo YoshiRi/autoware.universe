@@ -375,6 +375,7 @@ double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & 
 
 
 SingleLFTracker::SingleLFTracker(const autoware_auto_perception_msgs::msg::TrackedObject & object)
+:default_vehicle_(Eigen::Vector2d(object.kinematics.pose_with_covariance.pose.position.x, object.kinematics.pose_with_covariance.pose.position.y), object.shape.dimensions.y, object.shape.dimensions.x, tf2::getYaw(object.kinematics.pose_with_covariance.pose.orientation))
 {
   // set private variable
   position_ = Eigen::Vector2d(object.kinematics.pose_with_covariance.pose.position.x, object.kinematics.pose_with_covariance.pose.position.y);
@@ -439,8 +440,8 @@ void SingleLFTracker::createGridVehiclePositionParticle()
 
   longitude = 3; //1.5m x2 
   // generate vp
-  VehicleParticle vp(position_ , width_, length_, orientation_);
-  std::uint8_t index = vp.getNearestCornerIndex();
+  //VehicleParticle vp(position_ , width_, length_, orientation_);
+  std::uint8_t index = default_vehicle_.getNearestCornerIndex();
 
   for(int i=0;i<llen;i++){
       Eigen::Vector2d variation{get_interpV(i,llen,longitude)*cos(orientation_),get_interpV(i,llen,longitude)*sin(orientation_)};
@@ -465,7 +466,7 @@ void SingleLFTracker::createGridVehiclePositionParticle()
  * @return Eigen::VectorXd 
  * 
  */
-std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
+std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcMeanAndCovFromParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
 {
 
   auto loop = likelihoods.size();
@@ -492,7 +493,7 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::ve
 }
 
 
-std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcBestParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
+std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
 {
 
   Eigen::Vector3d mean;
@@ -504,7 +505,13 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcBestParticles(std::vector<doubl
 
 
   for(std::size_t i: max_indexes){
-    sum_likelihoods +=  likelihoods[i]; 
+    sum_likelihoods +=  likelihoods[i];
+
+    // Use default Tracker value if not changed
+    if(likelihoods[i] == default_likelihood_){
+      Eigen::Vector3d state(default_vehicle_.center_.x(), default_vehicle_.center_.y(), default_vehicle_.orientation_); 
+      return std::make_tuple(state,cov);
+    }
   }
 
 
@@ -563,7 +570,7 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
     Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
     states.push_back(state);
   }
-
+  default_likelihood_ = default_vehicle_.calcFineLikelihood(scan);
 
 //  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
 auto mean_cov_  = calcBestParticles(likelihoods, states);
