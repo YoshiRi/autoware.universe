@@ -427,30 +427,30 @@ void SingleLFTracker::createGridVehiclePositionParticle()
 { 
   // Strictly, we should use multivariate normal distribution
   // Relaxed Results
-  double x_wid, y_wid, yaw_wid;
+  double x_wid, y_wid, yaw_wid, longitude;
   double max_wid = 2; // 2m is max 
   int ilen = 10;
+  int llen = 50;
 
-  x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
+  x_wid = std::max(std::min(std::sqrt(covariance_(0,0)), max_wid);
   y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
   yaw_wid = DEG2RAD(15.0); 
 
+  longitude = 2*std::sqrt(x_wid*x_wid+y_wid*y_wid);
   // generate vp
   VehicleParticle vp(position_ , width_, length_, orientation_);
   std::uint8_t index = vp.getNearestCornerIndex();
 
-  for(int i=0;i<ilen;i++){
-    for(int j=0; j<ilen;j++){
-      Eigen::Vector2d variation{get_interpV(i,ilen,x_wid),get_interpV(j,ilen,y_wid)};
+  for(int i=0;i<llen;i++){
+      Eigen::Vector2d variation{get_interpV(i,llen,longitude)*cos(orientation_),get_interpV(i,llen,longitude)*sin(orientation_)};
       for(int k=0;k<ilen;k++){
         double orientation = orientation_ + get_interpV(k, ilen, yaw_wid);
         VehicleParticle vp(position_ + variation, width_, length_, orientation);
         vp.corner_index_ = index;
         vehicle_particle_.push_back(vp);
       }
-    }
   }
-  particle_num_ = ilen*ilen*ilen;
+  particle_num_ = ilen*llen;
 
 }
 
