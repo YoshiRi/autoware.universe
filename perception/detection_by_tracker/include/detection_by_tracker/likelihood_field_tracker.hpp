@@ -160,11 +160,13 @@ class SingleLFTracker
 {
   private:
     std::vector<VehicleParticle> vehicle_particle_;
+    VehicleParticle default_vehicle_;
     std::uint32_t particle_num_;
     Eigen::Vector2d position_;
     double orientation_;
     double width_;
     double length_;
+    double default_likelihood_;
     Eigen::Matrix3d covariance_;
 
   public:
@@ -172,6 +174,8 @@ class SingleLFTracker
     void createRandomVehiclePositionParticle(const std::uint32_t particle_num);
     void createGridVehiclePositionParticle();
     //void createVehicleShapeParticle();
+    std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcMeanAndCovFromParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors);
+    std::tuple<Eigen::Vector3d, Eigen::Matrix3d> calcBestParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors);
     void estimateState(const std::vector<Eigen::Vector2d> & scan);
     autoware_auto_perception_msgs::msg::TrackedObject toTrackedObject(autoware_auto_perception_msgs::msg::TrackedObject &object);
 };
