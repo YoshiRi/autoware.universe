@@ -427,16 +427,17 @@ void SingleLFTracker::createGridVehiclePositionParticle()
 { 
   // Strictly, we should use multivariate normal distribution
   // Relaxed Results
-  double x_wid, y_wid, yaw_wid, longitude;
-  double max_wid = 2; // 2m is max 
+  // double x_wid, y_wid
+  double yaw_wid, longitude;
+  //double max_wid = 2; // 2m is max 
   int ilen = 10;
   int llen = 50;
 
-  x_wid = std::max(std::min(std::sqrt(covariance_(0,0)), max_wid);
-  y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
+  // x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
+  // y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
   yaw_wid = DEG2RAD(15.0); 
 
-  longitude = 2*std::sqrt(x_wid*x_wid+y_wid*y_wid);
+  longitude = 3; //1.5m x2 
   // generate vp
   VehicleParticle vp(position_ , width_, length_, orientation_);
   std::uint8_t index = vp.getNearestCornerIndex();
