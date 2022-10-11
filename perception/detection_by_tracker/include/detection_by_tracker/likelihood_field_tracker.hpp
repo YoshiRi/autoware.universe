@@ -64,7 +64,8 @@
  */
 class RectangleZone
 {
-private:
+//private:
+public:
   double xmin_, xmax_, ymin_, ymax_;
   
 public:
@@ -108,15 +109,17 @@ class CoarseCarLikelihoodField
 class FineCarLikelihoodField
 {
   private:
-    /// cost value represent {penalty, contour, inside, outside}
-    std::vector<double> costs_ = {0.02,-0.04, -0.01, 0}; 
+
     double measurement_covariance_ = 0.1;
-    RectangleZone car_contour_; /// Rectangle Area
-    std::array<RectangleZone,4> penalty_zones_;
-    std::array<RectangleZone,4> contour_zones_;
-    const std::array<std::array<std::uint8_t, 2>, 4> indexes_ = {{{3,0},{0,1},{1,2},{2,3}}};
 
   public:
+    RectangleZone car_contour_; /// Rectangle Area
+    /// cost value represent {penalty, contour, inside, outside}
+    std::vector<double> costs_ = {0.02,-0.04, -0.01, 0}; 
+    const int indexes_[4][2] = {{3,0},{0,1},{1,2},{2,3}};
+    std::array<RectangleZone,4> penalty_zones_;
+    std::array<RectangleZone,4> contour_zones_;
+
     explicit FineCarLikelihoodField(const double width, const double length,
                                     const double outside_margin, const double inside_margin);
     void setContourZones(const double width, const double length, const double outside_margin, const double inside_margin);
@@ -137,20 +140,21 @@ private:
   const double inside_margin_ = 0.25;
   const double outside_margin_ = 1.0;
   double measurement_noise_ = 0.1;
-  FineCarLikelihoodField fine_likelihood_; // maybe it's ok to use std::optional instead
-  CoarseCarLikelihoodField coarse_likelihood_;
-  std::array<Eigen::Vector2d,4> corner_points_;
 
 
     
 public:
+  FineCarLikelihoodField fine_likelihood_; // maybe it's ok to use std::optional instead
+  CoarseCarLikelihoodField coarse_likelihood_;
+  std::array<Eigen::Vector2d,4> corner_points_;
+
   Eigen::Vector2d center_;
   double orientation_;
   std::uint8_t corner_index_;
   explicit VehicleParticle(const Eigen::Vector2d center, const double width, const double length, const double orientation);
   void setCornerPoints(const Eigen::Vector2d center, const double width, const double length, const double orientation);
   std::uint8_t getNearestCornerIndex(const Eigen::Vector2d & origin = Eigen::Vector2d(0.0,0.0)); /// ego origin is set 0,0 by default
-  std::vector<Eigen::Vector2d> toLocalCoordinate(const std::vector<Eigen::Vector2d> & measurements, const Eigen::Vector2d & center, double orientation);
+  void toLocalCoordinate(const std::vector<Eigen::Vector2d> & measurements, const Eigen::Vector2d & center, double orientation, std::vector<Eigen::Vector2d>& local_measurements);
   double calcCoarseLikelihood(const std::vector<Eigen::Vector2d> & measurements);
   double calcFineLikelihood(const std::vector<Eigen::Vector2d> & measurements);
 };

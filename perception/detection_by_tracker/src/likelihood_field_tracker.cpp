@@ -282,8 +282,8 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
     }
   }
 
-  double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,(double)localized_measurements.size());
-  return likelihood;
+  //double likelihood = sumOfCostToLikelihood(cost_sum, measurement_covariance_,(double)localized_measurements.size());
+  return -cost_sum; // use raw log likelihood
 }
 
 
@@ -330,18 +330,18 @@ std::uint8_t VehicleParticle::getNearestCornerIndex(const Eigen::Vector2d & cent
   return closest_index;
 }
 
-std::vector<Eigen::Vector2d> VehicleParticle::toLocalCoordinate(const std::vector<Eigen::Vector2d> & measurements, const Eigen::Vector2d & center, double orientation)
+void VehicleParticle::toLocalCoordinate(const std::vector<Eigen::Vector2d> & measurements, const Eigen::Vector2d & center, double orientation, std::vector<Eigen::Vector2d> & localized)
 {
   auto point_num = measurements.size();
-  std::vector<Eigen::Vector2d> localized(point_num);
+  //std::vector<Eigen::Vector2d> localized(point_num);
 
-  Eigen::Rotation2Dd rotate(orientation); /// rotation
-  auto Rt = rotate.toRotationMatrix().transpose(); /// Rotation matrix R^T
+  Eigen::Rotation2Dd rotate(-orientation); /// rotation
+  auto Rt = rotate.toRotationMatrix(); /// Rotation matrix R^T
 
   for(std::size_t i=0;i<point_num;i++){
-    localized[i] = Rt*(measurements[i]-center);
+    localized.push_back(Rt*(measurements[i]-center));
   }
-  return localized;
+  //return localized;
 }
 
 /**
@@ -353,7 +353,8 @@ std::vector<Eigen::Vector2d> VehicleParticle::toLocalCoordinate(const std::vecto
 double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> & measurements)
 {
   //auto corner_index = getNearestCornerIndex();
-  auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
+  std::vector<Eigen::Vector2d> local_measurements;
+  toLocalCoordinate(measurements, center_, orientation_, local_measurements);
   auto likelihood = coarse_likelihood_.calcLikelihoods(local_measurements, corner_index_);
   return likelihood;
 }
@@ -367,7 +368,8 @@ double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> 
 double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & measurements)
 {
   //auto corner_index = getNearestCornerIndex();
-  auto local_measurements = toLocalCoordinate(measurements, center_, orientation_);
+  std::vector<Eigen::Vector2d> local_measurements;
+  toLocalCoordinate(measurements, center_, orientation_, local_measurements);
   auto likelihood = fine_likelihood_.calcLikelihoods(local_measurements, corner_index_);
   return likelihood;
 
@@ -496,19 +498,23 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcMeanAndCovFrom
 std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(std::vector<double> & likelihoods, std::vector<Eigen::Vector3d> vectors)
 {
 
-  Eigen::Vector3d mean;
-  Eigen::Matrix3d cov;
+  Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+  Eigen::Matrix3d cov= Eigen::Matrix3d::Zero();
   double w2 = 0;
   double sum_likelihoods = 0;
 
   std::vector<std::size_t> max_indexes = findMaxIndices(likelihoods);
 
+  //ROS_DEBUG("log:%i", count);
+  std::cout << "Max num " <<max_indexes.size() << ", " <<  default_likelihood_ << std::endl;
+  std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
+  std::cout << "costsum" << default_vehicle_.fine_likelihood_.costs_[0] << ", indexes " << default_vehicle_.corner_index_ << std::endl;
 
   for(std::size_t i: max_indexes){
     sum_likelihoods +=  likelihoods[i];
-
+    //std::cout << "likelihoods sample " << likelihoods[i] << std::endl;
     // Use default Tracker value if not changed
-    if(likelihoods[i] == default_likelihood_){
+    if(likelihoods[i] < default_likelihood_){
       Eigen::Vector3d state(default_vehicle_.center_.x(), default_vehicle_.center_.y(), default_vehicle_.orientation_); 
       return std::make_tuple(state,cov);
     }
@@ -516,9 +522,10 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
 
 
   for(std::size_t i: max_indexes){
-    mean += vectors[i] * likelihoods[i] / sum_likelihoods; 
+    mean += vectors[i] ; 
     w2 += likelihoods[i]*likelihoods[i] / sum_likelihoods  / sum_likelihoods;
   }
+  mean = mean/(double) max_indexes.size();
 
   for(std::size_t i: max_indexes){
     cov += (mean-vectors[i]) * (mean-vectors[i]).transpose() * likelihoods[i]  / sum_likelihoods /(1-w2);
@@ -570,8 +577,13 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
     Eigen::Vector3d state(vehicle_particle_[i].center_.x(), vehicle_particle_[i].center_.y(), vehicle_particle_[i].orientation_);
     states.push_back(state);
   }
+
+  default_vehicle_.corner_index_ = default_vehicle_.getNearestCornerIndex();
   default_likelihood_ = default_vehicle_.calcFineLikelihood(scan);
 
+  std::vector<Eigen::Vector2d> local_scan;
+  default_vehicle_.toLocalCoordinate(scan, default_vehicle_.center_, default_vehicle_.orientation_, local_scan);
+  std::cout << local_scan[0].x() << ", " << local_scan[0].y() << std::endl;
 //  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
 auto mean_cov_  = calcBestParticles(likelihoods, states);
 
@@ -674,6 +686,7 @@ void LikelihoodFieldTracker::onObjects(
       Eigen::Vector2d xy{range*cos(th), range*sin(th)};
       scan_vec.push_back(xy);
     }
+    std::cout << scan_vec[0].x() << ", " <<scan_vec[0].y();
 
     RCLCPP_WARN(
       rclcpp::get_logger("LFTracker"),
@@ -687,7 +700,7 @@ void LikelihoodFieldTracker::onObjects(
     for(long unsigned int i=0; i < objects.objects.size();i++){
       // apply only for vehicle
       const auto label = objects.objects[i].classification.front().label;
-      std::cout << label <<std::endl;
+      //std::cout << label <<std::endl;
       const bool is_vehicle =   Label::CAR == label || Label::TRUCK == label || Label::BUS == label || Label::TRAILER == label;
       if(!is_vehicle){
         continue;
