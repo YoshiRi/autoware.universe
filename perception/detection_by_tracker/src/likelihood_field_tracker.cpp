@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "detection_by_tracker/likelihood_field_tracker.hpp"
-
+#include "detection_by_tracker/nlohmann_json.hpp"
 
 #include "perception_utils/perception_utils.hpp"
 
@@ -541,6 +541,14 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
     std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
     std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
     std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
+    // output to file
+    std::ofstream writing_file;
+    std::string filename = "likelihoods.txt";
+    writing_file.open(filename, std::ios::app);
+    nlohmann::json likelihoods_json(likelihoods);
+    //std::string likelihoods_json = json_builder::toJson(likelihoods);
+    writing_file << likelihoods_json << std::endl;
+    writing_file.close();
   }
 
   return std::make_tuple(mean,cov); 
