@@ -232,21 +232,23 @@ FineCarLikelihoodField::FineCarLikelihoodField(
 void FineCarLikelihoodField::setContourZones(const double width, const double length, const double outside_margin, const double inside_margin)
 {
   auto W2 = width/2.0; auto L2 = length/2.0;
-  contour_zones_[0].setZone(-L2, L2, -W2, -W2+inside_margin);
-  contour_zones_[1].setZone(-L2, -L2+inside_margin, -W2, W2);
-  contour_zones_[2].setZone(-L2, L2, W2-inside_margin, W2);
-  contour_zones_[3].setZone(L2-inside_margin, L2, -W2, W2);
+  auto contour_margin = inside_margin/2.0;
+  contour_zones_[0].setZone(-L2, L2, -W2-contour_margin, -W2+contour_margin);
+  contour_zones_[1].setZone(-L2-contour_margin, -L2+contour_margin, -W2, W2);
+  contour_zones_[2].setZone(-L2, L2, W2-contour_margin, W2+contour_margin);
+  contour_zones_[3].setZone(L2-contour_margin, L2+contour_margin, -W2, W2);
   (void)outside_margin; // currently unused
 }
 
 void FineCarLikelihoodField::setPenaltyZones(const double width, const double length, const double outside_margin, const double inside_margin)
 {
   auto W2 = width/2.0; auto L2 = length/2.0;
-  penalty_zones_[0].setZone(-L2, L2, -W2-outside_margin, -W2);
-  penalty_zones_[1].setZone(-L2-outside_margin, -L2, -W2, W2);
-  penalty_zones_[2].setZone(-L2, L2, W2, W2+outside_margin);
-  penalty_zones_[3].setZone(L2, L2+outside_margin, -W2, W2); 
-  (void)inside_margin; // currently unused
+  auto contour_margin = inside_margin/2.0;
+  penalty_zones_[0].setZone(-L2, L2, -W2-outside_margin, -W2-contour_margin);
+  penalty_zones_[1].setZone(-L2-outside_margin, -L2-contour_margin, -W2, W2);
+  penalty_zones_[2].setZone(-L2, L2, W2+contour_margin, W2+outside_margin);
+  penalty_zones_[3].setZone(L2+contour_margin , L2+outside_margin, -W2, W2); 
+  //(void)inside_margin; // currently unused
 }
 
 void FineCarLikelihoodField::setMeasurementCovariance(const double cov)
@@ -506,9 +508,9 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
   std::vector<std::size_t> max_indexes = findMaxIndices(likelihoods);
 
   //ROS_DEBUG("log:%i", count);
-  std::cout << "Max num " <<max_indexes.size() << ", " <<  default_likelihood_ << std::endl;
-  std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
-  std::cout << "costsum" << default_vehicle_.fine_likelihood_.costs_[0] << ", indexes " << default_vehicle_.corner_index_ << std::endl;
+  //std::cout << "Max num " <<max_indexes.size() << ", " <<  default_likelihood_ << std::endl;
+  //std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
+  //std::cout << "costsum" << default_vehicle_.fine_likelihood_.costs_[0] << ", indexes " << default_vehicle_.corner_index_ << std::endl;
 
   for(std::size_t i: max_indexes){
     sum_likelihoods +=  likelihoods[i];
@@ -532,6 +534,14 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
   }
   cov(0,0) = 0.4;
   cov(1,1) = 0.4;
+
+  // check warping objects
+  if(( default_vehicle_.center_ - mean.head<2>()).norm()>1.0 || std::abs(orientation_ - mean.z() > DEG2RAD(15))){
+    std::cout << "max indexes: " << max_indexes.size() << std::endl;
+    std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
+    std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
+    std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
+  }
 
   return std::make_tuple(mean,cov); 
 }
@@ -583,7 +593,7 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 
   std::vector<Eigen::Vector2d> local_scan;
   default_vehicle_.toLocalCoordinate(scan, default_vehicle_.center_, default_vehicle_.orientation_, local_scan);
-  std::cout << local_scan[0].x() << ", " << local_scan[0].y() << std::endl;
+//  std::cout << local_scan[0].x() << ", " << local_scan[0].y() << std::endl;
 //  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
 auto mean_cov_  = calcBestParticles(likelihoods, states);
 
@@ -686,7 +696,7 @@ void LikelihoodFieldTracker::onObjects(
       Eigen::Vector2d xy{range*cos(th), range*sin(th)};
       scan_vec.push_back(xy);
     }
-    std::cout << scan_vec[0].x() << ", " <<scan_vec[0].y();
+    //std::cout << scan_vec[0].x() << ", " <<scan_vec[0].y();
 
     RCLCPP_WARN(
       rclcpp::get_logger("LFTracker"),
