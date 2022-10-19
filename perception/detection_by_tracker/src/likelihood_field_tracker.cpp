@@ -535,22 +535,6 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
   cov(0,0) = 0.4;
   cov(1,1) = 0.4;
 
-  // check warping objects
-  if(( default_vehicle_.center_ - mean.head<2>()).norm()>1.0 || std::abs(orientation_ - mean.z() > DEG2RAD(15))){
-    std::cout << "max indexes: " << max_indexes.size() << std::endl;
-    std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
-    std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
-    std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
-    // output to file
-    std::ofstream writing_file;
-    std::string filename = "likelihoods.txt";
-    writing_file.open(filename, std::ios::app);
-    nlohmann::json likelihoods_json(likelihoods);
-    //std::string likelihoods_json = json_builder::toJson(likelihoods);
-    writing_file << likelihoods_json << std::endl;
-    writing_file.close();
-  }
-
   return std::make_tuple(mean,cov); 
 }
 
@@ -610,6 +594,22 @@ auto mean_cov_  = calcBestParticles(likelihoods, states);
   covariance_ = std::get<1>(mean_cov_);
   position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
   orientation_ = mstate_.z();
+
+  // check warping objects
+  if(( default_vehicle_.center_ - mean.head<2>()).norm()>1.0 || std::abs(orientation_ - mean.z() > DEG2RAD(15))){
+    std::cout << "max indexes: " << max_indexes.size() << std::endl;
+    std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
+    std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
+    std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
+    // output to file
+    std::ofstream writing_file;
+    std::string filename = "likelihoods.txt";
+    writing_file.open(filename, std::ios::app);
+    nlohmann::json likelihoods_json(likelihoods);
+    //std::string likelihoods_json = json_builder::toJson(likelihoods);
+    writing_file << likelihoods_json << std::endl;
+    writing_file.close();
+  }
 
 }
 
