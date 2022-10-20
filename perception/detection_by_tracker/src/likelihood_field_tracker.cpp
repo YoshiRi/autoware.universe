@@ -592,24 +592,56 @@ auto mean_cov_  = calcBestParticles(likelihoods, states);
 
   auto mstate_ = std::get<0>(mean_cov_);
   covariance_ = std::get<1>(mean_cov_);
-  position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
-  orientation_ = mstate_.z();
 
+
+  // Debugging
   // check warping objects
-  if(( default_vehicle_.center_ - mean.head<2>()).norm()>1.0 || std::abs(orientation_ - mean.z() > DEG2RAD(15))){
-    std::cout << "max indexes: " << max_indexes.size() << std::endl;
-    std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
+  if(( default_vehicle_.center_ - mstate_.head<2>()).norm()>1.0 || std::abs(orientation_ - mstate_.z() > DEG2RAD(15))){
+    //std::cout << "max indexes: " << max_indexes.size() << std::endl;
+    //std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
     std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
-    std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
+    //std::cout << "mean position " << mean.x() << ", "<< mean.y() << ", " << mean.z() <<std::endl;
     // output to file
     std::ofstream writing_file;
     std::string filename = "likelihoods.txt";
     writing_file.open(filename, std::ios::app);
-    nlohmann::json likelihoods_json(likelihoods);
-    //std::string likelihoods_json = json_builder::toJson(likelihoods);
-    writing_file << likelihoods_json << std::endl;
+    nlohmann::json vehicles;
+    for(std::uint32_t i=0; i<particle_num_; i++){
+      nlohmann::json vp;
+      vp["likelihood"] = likelihoods[i];
+      vp["x"] = vehicle_particle_[i].center_.x();
+      vp["y"] = vehicle_particle_[i].center_.y();
+      vp["yaw"] = vehicle_particle_[i].orientation_;
+      vehicles.push_back(vp);
+    }
+    {
+      nlohmann::json vp;
+      vp["likelihood"] = default_likelihood_;
+      vp["x"] = default_vehicle_.center_.x();
+      vp["y"] = default_vehicle_.center_.y();
+      vp["yaw"] = default_vehicle_.orientation_;
+      vehicles.push_back(vp);
+    }
+    writing_file << vehicles << "\n" <<std::endl;
     writing_file.close();
+
+    //output scan data
+    filename = "scan_points.txt";
+    nlohmann::json local_scan;
+    for(auto each_scan: scan){
+      nlohmann::json sc;
+      sc["x"] = each_scan.x();
+      sc["y"] = each_scan.y();
+      local_scan.push_back(sc);
+    }
+    writing_file.open(filename, std::ios::app);
+    writing_file << local_scan << "\n" <<std::endl;
+    writing_file.close();
+    
   }
+
+  position_ = Eigen::Vector2d(mstate_.x(),mstate_.y());
+  orientation_ = mstate_.z();
 
 }
 
