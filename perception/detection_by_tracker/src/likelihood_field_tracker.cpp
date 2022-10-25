@@ -138,6 +138,20 @@ void transformObjectsFromBaselinkToMap
   object_map.kinematics.pose_with_covariance.pose.position.z = before.pose.pose.position.z;
 }
 
+/// @brief get quadrant number of the input point belongging
+/// @param point Eigen::vector
+/// @return in which quadrant the point belong 1,2,3,4 starts from x 
+int getQuadrantBelonging(Eigen::Vector2d point){
+  if(point.x() > 0 && point.y() >= 0){
+    return 1;
+  }else if(point.x() <= 0 && point.y() > 0){
+    return 2;
+  }else if(point.x() < 0 && point.y() <= 0){
+    return 3;
+  }else{
+    return 4;
+  }
+}
 
 }  // namespace
 
@@ -266,8 +280,8 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
 {
   double cost_sum = 0;
   // for each 2d measurements
+  auto part = indexes_[index_num]; // Zone indexes
   for(std::size_t i = 0; i < localized_measurements.size(); ++i) { 
-    auto part = indexes_[index_num]; // Zone indexes
     
     if(penalty_zones_[part[0]].contains(localized_measurements[i]) || penalty_zones_[part[1]].contains(localized_measurements[i])){
       // inside penalty zones
@@ -280,7 +294,17 @@ double FineCarLikelihoodField::calcLikelihoods(const std::vector<Eigen::Vector2d
       cost_sum += costs_[2];
     }else{
       // outside the car
-      cost_sum += costs_[3];
+      auto quadrant = getQuadrantBelonging(localized_measurements[i]);
+      // occlueded or occupied
+      if(quadrant == (int)index_num){
+        // vehicle is occluded
+        cost_sum += costs_[3];
+      }else{
+        // vehicle should not be in here
+        // give penalty
+        cost_sum += costs_[0];
+      }
+      
     }
   }
 
@@ -369,11 +393,36 @@ double VehicleParticle::calcCoarseLikelihood(const std::vector<Eigen::Vector2d> 
  */
 double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & measurements)
 {
-  //auto corner_index = getNearestCornerIndex();
+  // get min and max angles for this rectangle
+  auto corner_index = getNearestCornerIndex(); // use default nearest corner index
+  int corner_index1 = corner_index + 1;
+  int corner_index2 = corner_index - 1;
+  if(corner_index1 == 4){ corner_index1 = 0;}
+  if(corner_index2 == -1){ corner_index2 = 3;}
+  double min_angle = std::atan2(corner_points_[corner_index1].y(), corner_points_[corner_index1].x());
+  double max_angle = std::atan2(corner_points_[corner_index2].y(), corner_points_[corner_index2].x());
+  if(max_angle < min_angle){
+    max_angle += 2.0 * M_PI;
+  }
+
+  // use scan
+  std::vector<Eigen::Vector2d>  xy_measurements;
+  for(auto scan: measurements){
+    if( scan.x() < max_angle && scan.x() > min_angle){
+      Eigen::Vector2d xy{scan.y()*cos(scan.x()), scan.y()*sin(scan.x())};
+      xy_measurements.push_back(xy);
+    }else if( scan.x()+ 2.0*M_PI < max_angle && scan.x()+2.0*M_PI > min_angle ){
+      Eigen::Vector2d xy{scan.y()*cos(scan.x()), scan.y()*sin(scan.x())};
+      xy_measurements.push_back(xy);
+    }
+  }
+  xy_measurements.push_back(Eigen::Vector2d{0,0}); // for zerodivision escape 
+
+  // to local coordinates
   std::vector<Eigen::Vector2d> local_measurements;
-  toLocalCoordinate(measurements, center_, orientation_, local_measurements);
+  toLocalCoordinate(xy_measurements, center_, orientation_, local_measurements);
   auto likelihood = fine_likelihood_.calcLikelihoods(local_measurements, corner_index_);
-  return likelihood;
+  return likelihood / (double)xy_measurements.size();// mean likelihood
 
 }
 
@@ -539,7 +588,7 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
 }
 
 
-
+// input: scan (theta, range) to calc likelihood
 void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
 {
   // temporary
@@ -730,11 +779,12 @@ void LikelihoodFieldTracker::onObjects(
     //std::cout<<i<< std::endl;
       double th = input_msg->angle_min+ (double)i*input_msg->angle_increment;
       double range = input_msg->ranges[i];
-      if( range > input_msg->range_max || range < input_msg->range_min){
-        continue;
-      }
-      Eigen::Vector2d xy{range*cos(th), range*sin(th)};
-      scan_vec.push_back(xy);
+      //if( range > input_msg->range_max || range < input_msg->range_min){
+      //  continue;
+      //}
+      //Eigen::Vector2d xy{range*cos(th), range*sin(th)};
+      Eigen::Vector2d d_theta{th, range};
+      scan_vec.push_back(d_theta);
     }
     //std::cout << scan_vec[0].x() << ", " <<scan_vec[0].y();
 
@@ -759,6 +809,7 @@ void LikelihoodFieldTracker::onObjects(
       // Create Tracker
       autoware_auto_perception_msgs::msg::TrackedObject local_object, estimated_local_object, estimated_object;
 
+      // init each vehicle particle
       transformObjectsFromMapToBaselink(objects.objects[i], local_object, input_msg->header, tf_buffer_);
       SingleLFTracker vehicle(local_object);
       vehicle.estimateState(scan_vec);
