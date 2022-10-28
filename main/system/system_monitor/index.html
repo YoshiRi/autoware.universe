@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://autowarefoundation.github.io/autoware.universe/main/system/system_monitor/">
       
       <link rel="icon" href="../../docs/assets/images/autoware-foundation.png">
-      <meta name="generator" content="mkdocs-1.4.1, mkdocs-material-8.5.6">
+      <meta name="generator" content="mkdocs-1.4.1, mkdocs-material-8.5.7">
     
     
       
@@ -9703,6 +9703,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_15_8_2">
@@ -9879,6 +9881,20 @@
     <li class="md-nav__item">
       <a href="docs/topics_process_monitor/" class="md-nav__link">
         ROS topics: Process Monitor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="docs/topics_voltage_monitor/" class="md-nav__link">
+        ROS topics: Voltage Monitor
       </a>
     </li>
   
@@ -10612,6 +10628,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#voltage-monitor-for-cmos-battery" class="md-nav__link">
+    Voltage monitor for CMOS Battery
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#uml-diagrams" class="md-nav__link">
     UML diagrams
   </a>
@@ -10650,6 +10673,7 @@
 <li>NTP Monitor</li>
 <li>Process Monitor</li>
 <li>GPU Monitor</li>
+<li>Voltage Monitor</li>
 </ul>
 <h3 id="supported-architecture">Supported architecture<a class="headerlink" href="#supported-architecture" title="Permanent link">#</a></h3>
 <ul>
@@ -10681,6 +10705,7 @@ If you build this package on intel platform, CPU monitor and GPU monitor which r
 <li><a href="docs/topics_ntp_monitor/">NTP Monitor</a></li>
 <li><a href="docs/topics_process_monitor/">Process Monitor</a></li>
 <li><a href="docs/topics_gpu_monitor/">GPU Monitor</a></li>
+<li><a href="docs/topics_voltage_monitor/">Voltage Monitor</a></li>
 </ul>
 <p>[Usage] ✓：Supported, -：Not supported</p>
 <table>
@@ -10919,6 +10944,14 @@ If you build this package on intel platform, CPU monitor and GPU monitor which r
 <td align="center">-</td>
 <td>For Intel platform, monitor whether current GPU clock is supported by the GPU.</td>
 </tr>
+<tr>
+<td>Voltage Monitor</td>
+<td>CMOS Battery Status</td>
+<td align="center">✓</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>Battery Health for RTC and BIOS -</td>
+</tr>
 </tbody>
 </table>
 <h2 id="ros-parameters">ROS parameters<a class="headerlink" href="#ros-parameters" title="Permanent link">#</a></h2>
@@ -11001,6 +11034,68 @@ install/system_monitor/lib/system_monitor/hdd_reader
 <p>Currently GPU monitor for intel platform only supports NVIDIA GPU whose information can be accessed by NVML API.</p>
 <p>Also you need to install CUDA libraries.
 For installation instructions for CUDA 10.0, see <a href="https://docs.nvidia.com/cuda/archive/10.0/cuda-installation-guide-linux/index.html">NVIDIA CUDA Installation Guide for Linux</a>.</p>
+<h2 id="voltage-monitor-for-cmos-battery"><u>Voltage monitor for CMOS Battery</u><a class="headerlink" href="#voltage-monitor-for-cmos-battery" title="Permanent link">#</a></h2>
+<p>Some platforms have built-in batteries for the RTC and CMOS. This node determines the battery status from the result of executing cat /proc/driver/rtc.
+Also, if lm-sensors is installed, it is possible to use the results.
+However, the return value of sensors varies depending on the chipset, so it is necessary to set a string to extract the corresponding voltage.
+It is also necessary to set the voltage for warning and error.
+For example, if you want a warning when the voltage is less than 2.9V and an error when it is less than 2.7V.
+The execution result of sensors on the chipset nct6106 is as follows, and "in7:" is the voltage of the CMOS battery.</p>
+<div class="highlight"><pre><span></span><code>$ sensors
+pch_cannonlake-virtual-0
+Adapter: Virtual device
+temp1:        +42.0°C
+
+nct6106-isa-0a10
+Adapter: ISA adapter
+in0:           728.00 mV (min =  +0.00 V, max =  +1.74 V)
+in1:             1.01 V  (min =  +0.00 V, max =  +2.04 V)
+in2:             3.34 V  (min =  +0.00 V, max =  +4.08 V)
+in3:             3.34 V  (min =  +0.00 V, max =  +4.08 V)
+in4:             1.07 V  (min =  +0.00 V, max =  +2.04 V)
+in5:             1.05 V  (min =  +0.00 V, max =  +2.04 V)
+in6:             1.67 V  (min =  +0.00 V, max =  +2.04 V)
+in7:             3.06 V  (min =  +0.00 V, max =  +4.08 V)
+in8:             2.10 V  (min =  +0.00 V, max =  +4.08 V)
+fan1:          2789 RPM  (min =    0 RPM)
+fan2:             0 RPM  (min =    0 RPM)
+</code></pre></div>
+<p>The setting value of voltage_monitor.param.yaml is as follows.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">/**</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ros__parameters</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">cmos_battery_warn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.90</span><span class="w"></span>
+<span class="w">    </span><span class="nt">cmos_battery_error</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.70</span><span class="w"></span>
+<span class="w">    </span><span class="nt">cmos_battery_label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;in7:&quot;</span><span class="w"></span>
+</code></pre></div>
+<p>The above values of 2.7V and 2.90V are hypothetical. Depending on the motherboard and chipset, the value may vary. However, if the voltage of the lithium battery drops below 2.7V, it is recommended to replace it.
+In the above example, the message output to the topic /diagnostics is as follows.
+If the voltage &lt; 2.9V then:</p>
+<div class="highlight"><pre><span></span><code>  name: /autoware/system/resource_monitoring/voltage/cmos_battery
+  message: Warning
+  hardware_id: &#39;&#39;
+  values:
+  - key: &#39;voltage_monitor: CMOS Battery Status&#39;
+    value: Low Battery
+</code></pre></div>
+<p>If the voltage &lt; 2.7V then:</p>
+<div class="highlight"><pre><span></span><code>  name: /autoware/system/resource_monitoring/voltage/cmos_battery
+  message: Warning
+  hardware_id: &#39;&#39;
+  values:
+  - key: &#39;voltage_monitor: CMOS Battery Status&#39;
+    value: Battery Died
+</code></pre></div>
+<p>If neither, then:</p>
+<div class="highlight"><pre><span></span><code>  name: /autoware/system/resource_monitoring/voltage/cmos_battery
+  message: OK
+  hardware_id: &#39;&#39;
+  values:
+  - key: &#39;voltage_monitor: CMOS Battery Status&#39;
+    value: OK
+</code></pre></div>
+<p>If the CMOS battery voltage drops less than voltage_error or voltage_warn,It will be a warning.
+If the battery runs out, the RTC will stop working when the power is turned off. However, since the vehicle can run, it is not an error. The vehicle will stop when an error occurs, but there is no need to stop immediately.
+It can be determined by the value of "Low Battery" or "Battery Died".</p>
 <h2 id="uml-diagrams">UML diagrams<a class="headerlink" href="#uml-diagrams" title="Permanent link">#</a></h2>
 <p>See <a href="docs/class_diagrams/">Class diagrams</a>.
 See <a href="docs/seq_diagrams/">Sequence diagrams</a>.</p>
@@ -11086,10 +11181,10 @@ See <a href="docs/seq_diagrams/">Sequence diagrams</a>.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand", "navigation.indexes", "navigation.instant", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top"], "search": "../../assets/javascripts/workers/search.5bf1dace.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand", "navigation.indexes", "navigation.instant", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top"], "search": "../../assets/javascripts/workers/search.16e2a7d4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.078830c0.min.js"></script>
+      <script src="../../assets/javascripts/bundle.8492ddcf.min.js"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
       
