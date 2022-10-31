@@ -399,8 +399,8 @@ double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & 
   int corner_index2 = corner_index - 1;
   if(corner_index1 == 4){ corner_index1 = 0;}
   if(corner_index2 == -1){ corner_index2 = 3;}
-  double min_angle = std::atan2(corner_points_[corner_index1].y(), corner_points_[corner_index1].x());
-  double max_angle = std::atan2(corner_points_[corner_index2].y(), corner_points_[corner_index2].x());
+  double max_angle = std::atan2(corner_points_[corner_index1].y(), corner_points_[corner_index1].x());
+  double min_angle = std::atan2(corner_points_[corner_index2].y(), corner_points_[corner_index2].x());
   if(max_angle < min_angle){
     max_angle += 2.0 * M_PI;
   }
@@ -484,8 +484,8 @@ void SingleLFTracker::createGridVehiclePositionParticle()
   // double x_wid, y_wid
   double yaw_wid, longitude;
   //double max_wid = 2; // 2m is max 
-  int ilen = 10;
-  int llen = 50;
+  int yaw_num = 9;
+  int len_num = 15;
 
   // x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
   // y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
@@ -496,16 +496,16 @@ void SingleLFTracker::createGridVehiclePositionParticle()
   //VehicleParticle vp(position_ , width_, length_, orientation_);
   std::uint8_t index = default_vehicle_.getNearestCornerIndex();
 
-  for(int i=0;i<llen;i++){
-      Eigen::Vector2d variation{get_interpV(i,llen,longitude)*cos(orientation_),get_interpV(i,llen,longitude)*sin(orientation_)};
-      for(int k=0;k<ilen;k++){
-        double orientation = orientation_ + get_interpV(k, ilen, yaw_wid);
+  for(int i=0;i<len_num;i++){
+      Eigen::Vector2d variation{get_interpV(i,len_num,longitude)*cos(orientation_),get_interpV(i,len_num,longitude)*sin(orientation_)};
+      for(int k=0;k<yaw_num;k++){
+        double orientation = orientation_ + get_interpV(k, yaw_num, yaw_wid);
         VehicleParticle vp(position_ + variation, width_, length_, orientation);
         vp.corner_index_ = index;
         vehicle_particle_.push_back(vp);
       }
   }
-  particle_num_ = ilen*llen;
+  particle_num_ = yaw_num*len_num;
 
 }
 
@@ -632,8 +632,33 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   default_vehicle_.corner_index_ = default_vehicle_.getNearestCornerIndex();
   default_likelihood_ = default_vehicle_.calcFineLikelihood(scan);
 
+  
+
+  int corner_index1 = default_vehicle_.corner_index_ + 1;
+  int corner_index2 = default_vehicle_.corner_index_ - 1;
+  if(corner_index1 == 4){ corner_index1 = 0;}
+  if(corner_index2 == -1){ corner_index2 = 3;}
+  double max_angle = std::atan2(default_vehicle_.corner_points_[corner_index1].y(), default_vehicle_.corner_points_[corner_index1].x());
+  double min_angle = std::atan2(default_vehicle_.corner_points_[corner_index2].y(), default_vehicle_.corner_points_[corner_index2].x());
+  if(max_angle < min_angle){
+    max_angle += 2.0 * M_PI;
+  }
+
+  //output scan data
+  std::vector<Eigen::Vector2d>  xy_measurements;
+  for(auto sc_: scan){
+    if( sc_.x() < max_angle && sc_.x() > min_angle){
+      Eigen::Vector2d xy{sc_.y()*cos(sc_.x()), sc_.y()*sin(sc_.x())};
+      xy_measurements.push_back(xy);
+    }else if( sc_.x()+ 2.0*M_PI < max_angle && sc_.x()+2.0*M_PI > min_angle ){
+      Eigen::Vector2d xy{sc_.y()*cos(sc_.x()), sc_.y()*sin(sc_.x())};
+      xy_measurements.push_back(xy);
+    }
+  }
+  xy_measurements.push_back(Eigen::Vector2d{0,0}); // for zerodivision escape 
+
   std::vector<Eigen::Vector2d> local_scan;
-  default_vehicle_.toLocalCoordinate(scan, default_vehicle_.center_, default_vehicle_.orientation_, local_scan);
+  default_vehicle_.toLocalCoordinate(xy_measurements, default_vehicle_.center_, default_vehicle_.orientation_, local_scan);
 //  std::cout << local_scan[0].x() << ", " << local_scan[0].y() << std::endl;
 //  auto mean_cov_  = calcMeanAndCovFromParticles(likelihoods, states);
 auto mean_cov_  = calcBestParticles(likelihoods, states);
@@ -669,22 +694,24 @@ auto mean_cov_  = calcBestParticles(likelihoods, states);
       vp["x"] = default_vehicle_.center_.x();
       vp["y"] = default_vehicle_.center_.y();
       vp["yaw"] = default_vehicle_.orientation_;
+      vp["min_angle"] = min_angle;
+      vp["max_angle"] = max_angle;
+      vp["corner_index"] = default_vehicle_.corner_index_;
       vehicles.push_back(vp);
     }
     writing_file << vehicles << "\n" <<std::endl;
     writing_file.close();
 
-    //output scan data
     filename = "scan_points.txt";
-    nlohmann::json local_scan;
-    for(auto each_scan: scan){
+    nlohmann::json json_scan;
+    for(auto each_scan: local_scan){
       nlohmann::json sc;
       sc["x"] = each_scan.x();
       sc["y"] = each_scan.y();
-      local_scan.push_back(sc);
+      json_scan.push_back(sc);
     }
     writing_file.open(filename, std::ios::app);
-    writing_file << local_scan << "\n" <<std::endl;
+    writing_file << json_scan << "\n" <<std::endl;
     writing_file.close();
     
   }
