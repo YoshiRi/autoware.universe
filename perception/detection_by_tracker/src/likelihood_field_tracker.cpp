@@ -482,30 +482,35 @@ void SingleLFTracker::createGridVehiclePositionParticle()
   // Strictly, we should use multivariate normal distribution
   // Relaxed Results
   // double x_wid, y_wid
-  double yaw_wid, longitude;
+  double yaw_wid, longitude, latitude;
   //double max_wid = 2; // 2m is max 
   int yaw_num = 9;
   int len_num = 15;
+  int wid_num = 3;
 
   // x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
   // y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
   yaw_wid = DEG2RAD(15.0); 
 
-  longitude = 3; //1.5m x2 
+  longitude = 3; //1.5m x2
+  latitude = 0.4; // 0.2 m x 2
   // generate vp
   //VehicleParticle vp(position_ , width_, length_, orientation_);
   std::uint8_t index = default_vehicle_.getNearestCornerIndex();
 
   for(int i=0;i<len_num;i++){
-      Eigen::Vector2d variation{get_interpV(i,len_num,longitude)*cos(orientation_),get_interpV(i,len_num,longitude)*sin(orientation_)};
+    Eigen::Vector2d variationX{get_interpV(i,len_num,longitude)*cos(orientation_),get_interpV(i,len_num,longitude)*sin(orientation_)};
+    for(int j=0;j<wid_num;j++){
+      Eigen::Vector2d variationY{-get_interpV(j,wid_num,latitude)*sin(orientation_),get_interpV(j,wid_num,latitude)*cos(orientation_)};
       for(int k=0;k<yaw_num;k++){
         double orientation = orientation_ + get_interpV(k, yaw_num, yaw_wid);
-        VehicleParticle vp(position_ + variation, width_, length_, orientation);
+        VehicleParticle vp(position_ + variationX + variationY, width_, length_, orientation);
         vp.corner_index_ = index;
         vehicle_particle_.push_back(vp);
       }
+    }
   }
-  particle_num_ = yaw_num*len_num;
+  particle_num_ = yaw_num*len_num*wid_num;
 
 }
 
