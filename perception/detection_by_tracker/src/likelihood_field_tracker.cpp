@@ -570,7 +570,7 @@ std::tuple<Eigen::Vector3d, Eigen::Matrix3d> SingleLFTracker::calcBestParticles(
     sum_likelihoods +=  likelihoods[i];
     //std::cout << "likelihoods sample " << likelihoods[i] << std::endl;
     // Use default Tracker value if not changed
-    if(likelihoods[i] < default_likelihood_){
+    if(likelihoods[i] <= default_likelihood_){
       Eigen::Vector3d state(default_vehicle_.center_.x(), default_vehicle_.center_.y(), default_vehicle_.orientation_); 
       return std::make_tuple(state,cov);
     }
@@ -675,7 +675,7 @@ auto mean_cov_  = calcBestParticles(likelihoods, states);
 
   // Debugging
   // check warping objects
-  if(( default_vehicle_.center_ - mstate_.head<2>()).norm()>1.0 || std::abs(orientation_ - mstate_.z() > DEG2RAD(15))){
+  if(( default_vehicle_.center_ - mstate_.head<2>()).norm()>1.0 || std::abs(orientation_ - mstate_.z() > DEG2RAD(9))){
     //std::cout << "max indexes: " << max_indexes.size() << std::endl;
     //std::cout << default_likelihood_ << " " << likelihoods[max_indexes[0]] << std::endl;
     std::cout << "vp position " << default_vehicle_.center_.x() << ", "<< default_vehicle_.center_.y() << ", " << default_vehicle_.orientation_ <<std::endl;
@@ -702,6 +702,8 @@ auto mean_cov_  = calcBestParticles(likelihoods, states);
       vp["min_angle"] = min_angle;
       vp["max_angle"] = max_angle;
       vp["corner_index"] = default_vehicle_.corner_index_;
+      vp["w"] = width_;
+      vp["l"] = length_;
       vehicles.push_back(vp);
     }
     writing_file << vehicles << "\n" <<std::endl;
