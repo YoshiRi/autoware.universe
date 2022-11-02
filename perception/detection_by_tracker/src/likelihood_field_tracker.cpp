@@ -408,6 +408,11 @@ double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & 
   // use scan
   std::vector<Eigen::Vector2d>  xy_measurements;
   for(auto scan: measurements){
+    // skip invalid scan
+    if(std::isfinite(scan.y()) || std::isfinite(scan.x())){
+      continue;
+    }
+    // calc scan
     if( scan.x() < max_angle && scan.x() > min_angle){
       Eigen::Vector2d xy{scan.y()*cos(scan.x()), scan.y()*sin(scan.x())};
       xy_measurements.push_back(xy);
