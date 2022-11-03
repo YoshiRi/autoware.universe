@@ -405,11 +405,11 @@ double VehicleParticle::calcFineLikelihood(const std::vector<Eigen::Vector2d> & 
     max_angle += 2.0 * M_PI;
   }
 
-  // use scan
+  // convert scan
   std::vector<Eigen::Vector2d>  xy_measurements;
   for(auto scan: measurements){
     // skip invalid scan
-    if(std::isfinite(scan.y()) || std::isfinite(scan.x())){
+    if(!std::isfinite(scan.y())){
       continue;
     }
     // calc scan
@@ -657,6 +657,10 @@ void SingleLFTracker::estimateState(const std::vector<Eigen::Vector2d> & scan)
   //output scan data
   std::vector<Eigen::Vector2d>  xy_measurements;
   for(auto sc_: scan){
+    // skip invalid scan
+    if(!std::isfinite(sc_.y())){
+      continue;
+    }
     if( sc_.x() < max_angle && sc_.x() > min_angle){
       Eigen::Vector2d xy{sc_.y()*cos(sc_.x()), sc_.y()*sin(sc_.x())};
       xy_measurements.push_back(xy);
