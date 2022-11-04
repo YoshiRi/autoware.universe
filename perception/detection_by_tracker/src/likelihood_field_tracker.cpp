@@ -489,9 +489,9 @@ void SingleLFTracker::createGridVehiclePositionParticle()
   // double x_wid, y_wid
   double yaw_wid, longitude, latitude;
   //double max_wid = 2; // 2m is max 
-  int yaw_num = 9;
-  int len_num = 15;
-  int wid_num = 3;
+  int yaw_num = 1;
+  int len_num = 25;
+  int wid_num = 5;
 
   // x_wid = std::min(std::sqrt(covariance_(0,0)), max_wid);
   // y_wid = std::min(std::sqrt(covariance_(1,1)), max_wid);
