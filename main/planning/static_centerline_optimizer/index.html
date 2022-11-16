@@ -8,21 +8,21 @@
       
       
       
-        <link rel="canonical" href="https://autowarefoundation.github.io/autoware.universe/main/localization/ndt_pcl_modified/">
+        <link rel="canonical" href="https://autowarefoundation.github.io/autoware.universe/main/planning/static_centerline_optimizer/">
       
       <link rel="icon" href="../../docs/assets/images/autoware-foundation.png">
-      <meta name="generator" content="mkdocs-1.4.1, mkdocs-material-8.5.7">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-8.5.10">
     
     
       
-        <title>ndt_pcl_modified - Autoware Universe Documentation</title>
+        <title>Static Centerline Optimizer - Autoware Universe Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.20d9efc8.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.472b142f.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.cbb835fc.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.08040f6c.min.css">
         
       
       
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ndt_pcl_modified" class="md-skip">
+        <a href="#static-centerline-optimizer" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ndt_pcl_modified
+              Static Centerline Optimizer
             
           </span>
         </div>
@@ -122,6 +122,7 @@
         
           
           
+          
           <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent=""  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
           
             <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
@@ -129,6 +130,7 @@
             </label>
           
         
+          
           
           
           <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="grey" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
@@ -346,8 +348,6 @@
         
   
   
-    
-  
 
 
   
@@ -359,7 +359,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../ekf_localizer/" class="md-tabs__link md-tabs__link--active">
+      <a href="../../localization/ekf_localizer/" class="md-tabs__link">
         Localization
       </a>
     </li>
@@ -417,6 +417,8 @@
         
   
   
+    
+  
 
 
   
@@ -428,7 +430,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../planning/behavior_path_planner/" class="md-tabs__link">
+      <a href="../behavior_path_planner/" class="md-tabs__link md-tabs__link--active">
         Planning
       </a>
     </li>
@@ -691,8 +693,6 @@
       
       
       
-        
-          
         
           
         
@@ -2034,12 +2034,18 @@
             
           
         
+          
+        
       
       
         
         
         <div class="md-nav__link md-nav__link--index ">
           <a href="../../common/signal_processing/">Signal processing</a>
+          
+            <label for="__nav_5_19">
+              <span class="md-nav__icon md-icon"></span>
+            </label>
           
         </div>
       
@@ -2050,6 +2056,57 @@
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_5_19_2" type="checkbox" id="__nav_5_19_2" checked>
+      
+      
+      
+        
+          
+        
+      
+      
+        <label class="md-nav__link" for="__nav_5_19_2">
+          Documentation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Documentation" data-md-level="3">
+        <label class="md-nav__title" for="__nav_5_19_2">
+          <span class="md-nav__icon md-icon"></span>
+          Documentation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/signal_processing/documentation/ButterworthFilter/" class="md-nav__link">
+        ButterworthFilter
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
             
           
         </ul>
@@ -2812,96 +2869,6 @@
       
         
           
-        
-      
-      
-        <label class="md-nav__link" for="__nav_5_34">
-          Vehicle constants manager
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Vehicle constants manager" data-md-level="2">
-        <label class="md-nav__title" for="__nav_5_34">
-          <span class="md-nav__icon md-icon"></span>
-          Vehicle constants manager
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_5_34_1" type="checkbox" id="__nav_5_34_1" checked>
-      
-      
-      
-        
-          
-        
-      
-      
-        <label class="md-nav__link" for="__nav_5_34_1">
-          Design
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Design" data-md-level="3">
-        <label class="md-nav__title" for="__nav_5_34_1">
-          <span class="md-nav__icon md-icon"></span>
-          Design
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../common/vehicle_constants_manager/design/vehicle_constants_manager-design/" class="md-nav__link">
-        vehicle_constants_manager
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-      
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_5_35" type="checkbox" id="__nav_5_35" checked>
-      
-      
-      
-        
-          
             
           
         
@@ -2915,7 +2882,7 @@
         </div>
       
       <nav class="md-nav" aria-label="Web controller" data-md-level="2">
-        <label class="md-nav__title" for="__nav_5_35">
+        <label class="md-nav__title" for="__nav_5_34">
           <span class="md-nav__icon md-icon"></span>
           Web controller
         </label>
@@ -4222,21 +4189,15 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_9" type="checkbox" id="__nav_9" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9" type="checkbox" id="__nav_9" checked>
       
       
       
-        
-          
-        
-          
         
           
         
@@ -4295,7 +4256,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../ekf_localizer/">Ekf localizer</a>
+          <a href="../../localization/ekf_localizer/">Ekf localizer</a>
           
         </div>
       
@@ -4340,7 +4301,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../gyro_odometer/">Gyro odometer</a>
+          <a href="../../localization/gyro_odometer/">Gyro odometer</a>
           
         </div>
       
@@ -4385,7 +4346,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../initial_pose_button_panel/">Initial pose button panel</a>
+          <a href="../../localization/initial_pose_button_panel/">Initial pose button panel</a>
           
         </div>
       
@@ -4430,7 +4391,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../localization_error_monitor/">Localization error monitor</a>
+          <a href="../../localization/localization_error_monitor/">Localization error monitor</a>
           
         </div>
       
@@ -4475,14 +4436,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../ndt/">Ndt</a>
+          <a href="../../localization/ndt_scan_matcher/">Ndt scan matcher</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Ndt" data-md-level="2">
+      <nav class="md-nav" aria-label="Ndt scan matcher" data-md-level="2">
         <label class="md-nav__title" for="__nav_9_5">
           <span class="md-nav__icon md-icon"></span>
-          Ndt
+          Ndt scan matcher
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -4499,16 +4460,14 @@
               
   
   
-    
-  
   
     
       
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_9_6" type="checkbox" id="__nav_9_6" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9_6" type="checkbox" id="__nav_9_6" checked>
       
       
       
@@ -4521,15 +4480,15 @@
       
         
         
-        <div class="md-nav__link md-nav__link--index md-nav__link--active">
-          <a href="./">Ndt pcl modified</a>
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../../localization/pose2twist/">Pose2twist</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Ndt pcl modified" data-md-level="2">
+      <nav class="md-nav" aria-label="Pose2twist" data-md-level="2">
         <label class="md-nav__title" for="__nav_9_6">
           <span class="md-nav__icon md-icon"></span>
-          Ndt pcl modified
+          Pose2twist
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -4562,22 +4521,95 @@
             
           
         
+          
+        
       
       
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../ndt_scan_matcher/">Ndt scan matcher</a>
+          <a href="../../localization/pose_initializer/">Pose initializer</a>
+          
+            <label for="__nav_9_7">
+              <span class="md-nav__icon md-icon"></span>
+            </label>
           
         </div>
       
-      <nav class="md-nav" aria-label="Ndt scan matcher" data-md-level="2">
+      <nav class="md-nav" aria-label="Pose initializer" data-md-level="2">
         <label class="md-nav__title" for="__nav_9_7">
           <span class="md-nav__icon md-icon"></span>
-          Ndt scan matcher
+          Pose initializer
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9_7_2" type="checkbox" id="__nav_9_7_2" checked>
+      
+      
+      
+        
+          
+        
+          
+        
+      
+      
+        <label class="md-nav__link" for="__nav_9_7_2">
+          Docs
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Docs" data-md-level="3">
+        <label class="md-nav__title" for="__nav_9_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          Docs
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../localization/pose_initializer/docs/map_height_fitter/" class="md-nav__link">
+        map_height_fitter
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../localization/pose_initializer/docs/pose_initializer/" class="md-nav__link">
+        pose_initializer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
             
           
         </ul>
@@ -4612,14 +4644,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../pose2twist/">Pose2twist</a>
+          <a href="../../localization/stop_filter/">Stop filter</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Pose2twist" data-md-level="2">
+      <nav class="md-nav" aria-label="Stop filter" data-md-level="2">
         <label class="md-nav__title" for="__nav_9_8">
           <span class="md-nav__icon md-icon"></span>
-          Pose2twist
+          Stop filter
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -4652,180 +4684,17 @@
             
           
         
-          
-        
       
       
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../pose_initializer/">Pose initializer</a>
-          
-            <label for="__nav_9_9">
-              <span class="md-nav__icon md-icon"></span>
-            </label>
-          
-        </div>
-      
-      <nav class="md-nav" aria-label="Pose initializer" data-md-level="2">
-        <label class="md-nav__title" for="__nav_9_9">
-          <span class="md-nav__icon md-icon"></span>
-          Pose initializer
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9_9_2" type="checkbox" id="__nav_9_9_2" checked>
-      
-      
-      
-        
-          
-        
-          
-        
-      
-      
-        <label class="md-nav__link" for="__nav_9_9_2">
-          Docs
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Docs" data-md-level="3">
-        <label class="md-nav__title" for="__nav_9_9_2">
-          <span class="md-nav__icon md-icon"></span>
-          Docs
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../pose_initializer/docs/map_height_fitter/" class="md-nav__link">
-        map_height_fitter
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../pose_initializer/docs/pose_initializer/" class="md-nav__link">
-        pose_initializer
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-      
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9_10" type="checkbox" id="__nav_9_10" checked>
-      
-      
-      
-        
-          
-            
-          
-        
-      
-      
-        
-        
-        <div class="md-nav__link md-nav__link--index ">
-          <a href="../stop_filter/">Stop filter</a>
-          
-        </div>
-      
-      <nav class="md-nav" aria-label="Stop filter" data-md-level="2">
-        <label class="md-nav__title" for="__nav_9_10">
-          <span class="md-nav__icon md-icon"></span>
-          Stop filter
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-      
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_9_11" type="checkbox" id="__nav_9_11" checked>
-      
-      
-      
-        
-          
-            
-          
-        
-      
-      
-        
-        
-        <div class="md-nav__link md-nav__link--index ">
-          <a href="../twist2accel/">Twist2accel</a>
+          <a href="../../localization/twist2accel/">Twist2accel</a>
           
         </div>
       
       <nav class="md-nav" aria-label="Twist2accel" data-md-level="2">
-        <label class="md-nav__title" for="__nav_9_11">
+        <label class="md-nav__title" for="__nav_9_9">
           <span class="md-nav__icon md-icon"></span>
           Twist2accel
         </label>
@@ -6867,15 +6736,21 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_12" type="checkbox" id="__nav_12" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_12" type="checkbox" id="__nav_12" checked>
       
       
       
+        
+          
+        
+          
         
           
         
@@ -6964,7 +6839,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/behavior_path_planner/">Behavior path planner</a>
+          <a href="../behavior_path_planner/">Behavior path planner</a>
           
             <label for="__nav_12_1">
               <span class="md-nav__icon md-icon"></span>
@@ -6987,7 +6862,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_path_planner/behavior_path_planner_avoidance-design/" class="md-nav__link">
+      <a href="../behavior_path_planner/behavior_path_planner_avoidance-design/" class="md-nav__link">
         Avoidance Module
       </a>
     </li>
@@ -7001,7 +6876,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_path_planner/behavior_path_planner_design_limitations/" class="md-nav__link">
+      <a href="../behavior_path_planner/behavior_path_planner_design_limitations/" class="md-nav__link">
         Design limitation
       </a>
     </li>
@@ -7015,7 +6890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_path_planner/behavior_path_planner_lane_change/" class="md-nav__link">
+      <a href="../behavior_path_planner/behavior_path_planner_lane_change/" class="md-nav__link">
         Lane Change
       </a>
     </li>
@@ -7029,7 +6904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_path_planner/behavior_path_planner_turn_signal-design/" class="md-nav__link">
+      <a href="../behavior_path_planner/behavior_path_planner_turn_signal-design/" class="md-nav__link">
         Turn Signal Decider
       </a>
     </li>
@@ -7091,7 +6966,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/behavior_velocity_planner/">Behavior velocity planner</a>
+          <a href="../behavior_velocity_planner/">Behavior velocity planner</a>
           
             <label for="__nav_12_2">
               <span class="md-nav__icon md-icon"></span>
@@ -7114,7 +6989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/blind-spot-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/blind-spot-design/" class="md-nav__link">
         Blind spot design
       </a>
     </li>
@@ -7128,7 +7003,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/crosswalk-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/crosswalk-design/" class="md-nav__link">
         Crosswalk design
       </a>
     </li>
@@ -7142,7 +7017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/detection-area-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/detection-area-design/" class="md-nav__link">
         Detection area design
       </a>
     </li>
@@ -7156,7 +7031,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/intersection-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/intersection-design/" class="md-nav__link">
         Intersection design
       </a>
     </li>
@@ -7170,7 +7045,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/merge-from-private-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/merge-from-private-design/" class="md-nav__link">
         Merge from private design
       </a>
     </li>
@@ -7184,7 +7059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/no-stopping-area-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/no-stopping-area-design/" class="md-nav__link">
         No stopping area design
       </a>
     </li>
@@ -7198,7 +7073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/occlusion-spot-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/occlusion-spot-design/" class="md-nav__link">
         Occlusion spot design
       </a>
     </li>
@@ -7212,7 +7087,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/run-out-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/run-out-design/" class="md-nav__link">
         Run out design
       </a>
     </li>
@@ -7226,7 +7101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/stop-line-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/stop-line-design/" class="md-nav__link">
         Stop line design
       </a>
     </li>
@@ -7240,7 +7115,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/traffic-light-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/traffic-light-design/" class="md-nav__link">
         Traffic light design
       </a>
     </li>
@@ -7254,7 +7129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/behavior_velocity_planner/virtual-traffic-light-design/" class="md-nav__link">
+      <a href="../behavior_velocity_planner/virtual-traffic-light-design/" class="md-nav__link">
         Virtual traffic light design
       </a>
     </li>
@@ -7294,7 +7169,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/costmap_generator/">Costmap generator</a>
+          <a href="../costmap_generator/">Costmap generator</a>
           
         </div>
       
@@ -7339,7 +7214,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/external_velocity_limit_selector/">External velocity limit selector</a>
+          <a href="../external_velocity_limit_selector/">External velocity limit selector</a>
           
         </div>
       
@@ -7384,7 +7259,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/freespace_planner/">Freespace planner</a>
+          <a href="../freespace_planner/">Freespace planner</a>
           
         </div>
       
@@ -7431,7 +7306,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/freespace_planning_algorithms/">Freespace planning algorithms</a>
+          <a href="../freespace_planning_algorithms/">Freespace planning algorithms</a>
           
             <label for="__nav_12_6">
               <span class="md-nav__icon md-icon"></span>
@@ -7454,7 +7329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/freespace_planning_algorithms/rrtstar/" class="md-nav__link">
+      <a href="../freespace_planning_algorithms/rrtstar/" class="md-nav__link">
         Rrtstar
       </a>
     </li>
@@ -7494,7 +7369,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/mission_planner/">Mission planner</a>
+          <a href="../mission_planner/">Mission planner</a>
           
         </div>
       
@@ -7541,7 +7416,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/motion_velocity_smoother/">Motion velocity smoother</a>
+          <a href="../motion_velocity_smoother/">Motion velocity smoother</a>
           
             <label for="__nav_12_8">
               <span class="md-nav__icon md-icon"></span>
@@ -7564,7 +7439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/motion_velocity_smoother/README.ja/" class="md-nav__link">
+      <a href="../motion_velocity_smoother/README.ja/" class="md-nav__link">
         Motion Velocity Smoother
       </a>
     </li>
@@ -7606,7 +7481,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/obstacle_avoidance_planner/">Obstacle avoidance planner</a>
+          <a href="../obstacle_avoidance_planner/">Obstacle avoidance planner</a>
           
             <label for="__nav_12_9">
               <span class="md-nav__icon md-icon"></span>
@@ -7629,7 +7504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/obstacle_avoidance_planner/debug/" class="md-nav__link">
+      <a href="../obstacle_avoidance_planner/debug/" class="md-nav__link">
         Debug
       </a>
     </li>
@@ -7669,7 +7544,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/obstacle_cruise_planner/">Obstacle cruise planner</a>
+          <a href="../obstacle_cruise_planner/">Obstacle cruise planner</a>
           
         </div>
       
@@ -7714,7 +7589,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/obstacle_stop_planner/">Obstacle stop planner</a>
+          <a href="../obstacle_stop_planner/">Obstacle stop planner</a>
           
         </div>
       
@@ -7751,49 +7626,25 @@
       
         
           
-        
+            
           
         
       
       
-        <label class="md-nav__link" for="__nav_12_12">
-          Planning debug tools
-          <span class="md-nav__icon md-icon"></span>
-        </label>
+        
+        
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../obstacle_velocity_limiter/">Obstacle velocity limiter</a>
+          
+        </div>
       
-      <nav class="md-nav" aria-label="Planning debug tools" data-md-level="2">
+      <nav class="md-nav" aria-label="Obstacle velocity limiter" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_12">
           <span class="md-nav__icon md-icon"></span>
-          Planning debug tools
+          Obstacle velocity limiter
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../planning/planning_debug_tools/Readme/" class="md-nav__link">
-        Planning Debug Tools
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../planning/planning_debug_tools/doc-stop-reason-visualizer/" class="md-nav__link">
-        Doc stop reason visualizer
-      </a>
-    </li>
-  
-
             
           
         </ul>
@@ -7820,25 +7671,49 @@
       
         
           
-            
+        
           
         
       
       
-        
-        
-        <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/planning_error_monitor/">Planning error monitor</a>
-          
-        </div>
+        <label class="md-nav__link" for="__nav_12_13">
+          Planning debug tools
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
-      <nav class="md-nav" aria-label="Planning error monitor" data-md-level="2">
+      <nav class="md-nav" aria-label="Planning debug tools" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_13">
           <span class="md-nav__icon md-icon"></span>
-          Planning error monitor
+          Planning debug tools
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planning_debug_tools/Readme/" class="md-nav__link">
+        Planning Debug Tools
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planning_debug_tools/doc-stop-reason-visualizer/" class="md-nav__link">
+        Doc stop reason visualizer
+      </a>
+    </li>
+  
+
             
           
         </ul>
@@ -7873,14 +7748,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/planning_evaluator/">Planning evaluator</a>
+          <a href="../planning_error_monitor/">Planning error monitor</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Planning evaluator" data-md-level="2">
+      <nav class="md-nav" aria-label="Planning error monitor" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_14">
           <span class="md-nav__icon md-icon"></span>
-          Planning evaluator
+          Planning error monitor
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -7918,14 +7793,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/route_handler/">Route handler</a>
+          <a href="../planning_evaluator/">Planning evaluator</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Route handler" data-md-level="2">
+      <nav class="md-nav" aria-label="Planning evaluator" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_15">
           <span class="md-nav__icon md-icon"></span>
-          Route handler
+          Planning evaluator
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -7963,14 +7838,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/rtc_auto_mode_manager/">Rtc auto mode manager</a>
+          <a href="../route_handler/">Route handler</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Rtc auto mode manager" data-md-level="2">
+      <nav class="md-nav" aria-label="Route handler" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_16">
           <span class="md-nav__icon md-icon"></span>
-          Rtc auto mode manager
+          Route handler
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -8008,14 +7883,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/rtc_interface/">Rtc interface</a>
+          <a href="../rtc_auto_mode_manager/">Rtc auto mode manager</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Rtc interface" data-md-level="2">
+      <nav class="md-nav" aria-label="Rtc auto mode manager" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_17">
           <span class="md-nav__icon md-icon"></span>
-          Rtc interface
+          Rtc auto mode manager
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -8053,14 +7928,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/rtc_replayer/">Rtc replayer</a>
+          <a href="../rtc_interface/">Rtc interface</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Rtc replayer" data-md-level="2">
+      <nav class="md-nav" aria-label="Rtc interface" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_18">
           <span class="md-nav__icon md-icon"></span>
-          Rtc replayer
+          Rtc interface
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -8098,14 +7973,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/scenario_selector/">Scenario selector</a>
+          <a href="../rtc_replayer/">Rtc replayer</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="Scenario selector" data-md-level="2">
+      <nav class="md-nav" aria-label="Rtc replayer" data-md-level="2">
         <label class="md-nav__title" for="__nav_12_19">
           <span class="md-nav__icon md-icon"></span>
-          Scenario selector
+          Rtc replayer
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -8138,6 +8013,98 @@
             
           
         
+      
+      
+        
+        
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../scenario_selector/">Scenario selector</a>
+          
+        </div>
+      
+      <nav class="md-nav" aria-label="Scenario selector" data-md-level="2">
+        <label class="md-nav__title" for="__nav_12_20">
+          <span class="md-nav__icon md-icon"></span>
+          Scenario selector
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_12_21" type="checkbox" id="__nav_12_21" checked>
+      
+      
+      
+        
+          
+            
+          
+        
+      
+      
+        
+        
+        <div class="md-nav__link md-nav__link--index md-nav__link--active">
+          <a href="./">Static centerline optimizer</a>
+          
+        </div>
+      
+      <nav class="md-nav" aria-label="Static centerline optimizer" data-md-level="2">
+        <label class="md-nav__title" for="__nav_12_21">
+          <span class="md-nav__icon md-icon"></span>
+          Static centerline optimizer
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_12_22" type="checkbox" id="__nav_12_22" checked>
+      
+      
+      
+        
+          
+            
+          
+        
           
         
       
@@ -8145,16 +8112,16 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../planning/surround_obstacle_checker/">Surround obstacle checker</a>
+          <a href="../surround_obstacle_checker/">Surround obstacle checker</a>
           
-            <label for="__nav_12_20">
+            <label for="__nav_12_22">
               <span class="md-nav__icon md-icon"></span>
             </label>
           
         </div>
       
       <nav class="md-nav" aria-label="Surround obstacle checker" data-md-level="2">
-        <label class="md-nav__title" for="__nav_12_20">
+        <label class="md-nav__title" for="__nav_12_22">
           <span class="md-nav__icon md-icon"></span>
           Surround obstacle checker
         </label>
@@ -8168,7 +8135,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../planning/surround_obstacle_checker/surround_obstacle_checker-design.ja/" class="md-nav__link">
+      <a href="../surround_obstacle_checker/surround_obstacle_checker-design.ja/" class="md-nav__link">
         Surround Obstacle Checker
       </a>
     </li>
@@ -9208,6 +9175,10 @@
         
           
         
+          
+        
+          
+        
       
       
         <label class="md-nav__link" for="__nav_15">
@@ -9599,14 +9570,14 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../../system/system_error_monitor/">System error monitor</a>
+          <a href="../../system/mrm_comfortable_stop_operator/">Mrm comfortable stop operator</a>
           
         </div>
       
-      <nav class="md-nav" aria-label="System error monitor" data-md-level="2">
+      <nav class="md-nav" aria-label="Mrm comfortable stop operator" data-md-level="2">
         <label class="md-nav__title" for="__nav_15_7">
           <span class="md-nav__icon md-icon"></span>
-          System error monitor
+          Mrm comfortable stop operator
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -9636,6 +9607,104 @@
       
         
           
+        
+      
+      
+        <label class="md-nav__link" for="__nav_15_8">
+          Mrm emergency stop operator
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Mrm emergency stop operator" data-md-level="2">
+        <label class="md-nav__title" for="__nav_15_8">
+          <span class="md-nav__icon md-icon"></span>
+          Mrm emergency stop operator
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../system/mrm_emergency_stop_operator/READEME/" class="md-nav__link">
+        mrm_emergency_stop_operator
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_9" type="checkbox" id="__nav_15_9" checked>
+      
+      
+      
+        
+          
+            
+          
+        
+      
+      
+        
+        
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../../system/system_error_monitor/">System error monitor</a>
+          
+        </div>
+      
+      <nav class="md-nav" aria-label="System error monitor" data-md-level="2">
+        <label class="md-nav__title" for="__nav_15_9">
+          <span class="md-nav__icon md-icon"></span>
+          System error monitor
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_10" type="checkbox" id="__nav_15_10" checked>
+      
+      
+      
+        
+          
             
           
         
@@ -9648,14 +9717,14 @@
         <div class="md-nav__link md-nav__link--index ">
           <a href="../../system/system_monitor/">System monitor</a>
           
-            <label for="__nav_15_8">
+            <label for="__nav_15_10">
               <span class="md-nav__icon md-icon"></span>
             </label>
           
         </div>
       
       <nav class="md-nav" aria-label="System monitor" data-md-level="2">
-        <label class="md-nav__title" for="__nav_15_8">
+        <label class="md-nav__title" for="__nav_15_10">
           <span class="md-nav__icon md-icon"></span>
           System monitor
         </label>
@@ -9672,7 +9741,7 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_8_2" type="checkbox" id="__nav_15_8_2" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_10_2" type="checkbox" id="__nav_15_10_2" checked>
       
       
       
@@ -9707,13 +9776,13 @@
         
       
       
-        <label class="md-nav__link" for="__nav_15_8_2">
+        <label class="md-nav__link" for="__nav_15_10_2">
           Docs
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Docs" data-md-level="3">
-        <label class="md-nav__title" for="__nav_15_8_2">
+        <label class="md-nav__title" for="__nav_15_10_2">
           <span class="md-nav__icon md-icon"></span>
           Docs
         </label>
@@ -9940,7 +10009,7 @@
     <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_9" type="checkbox" id="__nav_15_9" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_11" type="checkbox" id="__nav_15_11" checked>
       
       
       
@@ -9949,13 +10018,13 @@
         
       
       
-        <label class="md-nav__link" for="__nav_15_9">
+        <label class="md-nav__link" for="__nav_15_11">
           Topic state monitor
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Topic state monitor" data-md-level="2">
-        <label class="md-nav__title" for="__nav_15_9">
+        <label class="md-nav__title" for="__nav_15_11">
           <span class="md-nav__icon md-icon"></span>
           Topic state monitor
         </label>
@@ -9993,7 +10062,7 @@
     <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_10" type="checkbox" id="__nav_15_10" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_15_12" type="checkbox" id="__nav_15_12" checked>
       
       
       
@@ -10002,13 +10071,13 @@
         
       
       
-        <label class="md-nav__link" for="__nav_15_10">
+        <label class="md-nav__link" for="__nav_15_12">
           Velodyne monitor
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Velodyne monitor" data-md-level="2">
-        <label class="md-nav__title" for="__nav_15_10">
+        <label class="md-nav__title" for="__nav_15_12">
           <span class="md-nav__icon md-icon"></span>
           Velodyne monitor
         </label>
@@ -10519,9 +10588,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#modifications" class="md-nav__link">
-    Modifications
+  <a href="#use-cases" class="md-nav__link">
+    Use cases
   </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vector-map-builder-interface" class="md-nav__link">
+    Vector Map Builder Interface
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-line-interface" class="md-nav__link">
+    Command Line Interface
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualization" class="md-nav__link">
+    Visualization
+  </a>
+  
+    <nav class="md-nav" aria-label="Visualization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unsafe-footprints" class="md-nav__link">
+    Unsafe footprints
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -10539,20 +10648,77 @@
                 
                   
 
-  <a href="https://github.com/autowarefoundation/autoware.universe/edit/main/localization/ndt_pcl_modified/README.md" title="Edit this page" class="md-content__button md-icon">
+  <a href="https://github.com/autowarefoundation/autoware.universe/edit/main/planning/static_centerline_optimizer/README.md" title="Edit this page" class="md-content__button md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
-<h1 id="ndt_pcl_modified">ndt_pcl_modified<a class="headerlink" href="#ndt_pcl_modified" title="Permanent link">#</a></h1>
+<h1 id="static-centerline-optimizer">Static Centerline Optimizer<a class="headerlink" href="#static-centerline-optimizer" title="Permanent link">#</a></h1>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">#</a></h2>
-<p>This is a modification of <a href="https://github.com/PointCloudLibrary/pcl">PCL</a>'s NDT.</p>
-<h2 id="modifications">Modifications<a class="headerlink" href="#modifications" title="Permanent link">#</a></h2>
+<p>This package statically calculates the centerline satisfying path footprints inside the drivable area.</p>
+<p>On narrow-road driving, the default centerline, which is the middle line between lanelets' right and left boundaries, often causes path footprints outside the drivable area.
+To make path footprints inside the drivable area, we use online path shape optimization by <a href="https://github.com/autowarefoundation/autoware.universe/tree/main/planning/obstacle_avoidance_planner/">the obstacle_avoidance_planner package</a>.</p>
+<p>Instead of online path shape optimization, we introduce static centerline optimization.
+With this static centerline optimization, we have following advantages.</p>
 <ul>
-<li>You can get the Hessian matrix by getHessian().</li>
-<li>You can get the estimated position for each iteration by getFinalTransformationArray().</li>
-<li>It optimizes rotational axes first, then jointly optimizes rotational and translational axes. [experimental feature]</li>
+<li>We can see the optimized centerline shape in advance.<ul>
+<li>With the default autoware, path shape is not determined until the vehicle drives there.</li>
+<li>This enables offline path shape evaluation.</li>
+</ul>
+</li>
+<li>We do not have to calculate a heavy and sometimes unstable path optimization since the path footprints are already inside the drivable area.</li>
+</ul>
+<h2 id="use-cases">Use cases<a class="headerlink" href="#use-cases" title="Permanent link">#</a></h2>
+<p>There are two interfaces to communicate with the centerline optimizer.</p>
+<h3 id="vector-map-builder-interface">Vector Map Builder Interface<a class="headerlink" href="#vector-map-builder-interface" title="Permanent link">#</a></h3>
+<p>Note: This function of Vector Map Builder has not been released. Please wait for a while.
+Currently there is no documentation about Vector Map Builder's operation for this function.</p>
+<p>The optimized centerline can be generated from Vector Map Builder's operation.</p>
+<p>We can run</p>
+<ul>
+<li>path planning server</li>
+<li>http server to connect path planning server and Vector Map Builder</li>
+</ul>
+<p>with the following command by designating <code>&lt;vehicle_model&gt;</code></p>
+<div class="highlight"><pre><span></span><code>ros2 launch static_centerline_optimizer run_planning_server.launch.xml vehicle_model:<span class="o">=</span>&lt;vehicle-model&gt;
+</code></pre></div>
+<p>FYI, port ID of the http server is 4010 by default.</p>
+<h3 id="command-line-interface">Command Line Interface<a class="headerlink" href="#command-line-interface" title="Permanent link">#</a></h3>
+<p>The optimized centerline can be generated from the command line interface by designating</p>
+<ul>
+<li><code>&lt;input-osm-path&gt;</code></li>
+<li><code>&lt;output-osm-path&gt;</code> (not mandatory)</li>
+<li><code>&lt;start-lanelet-id&gt;</code></li>
+<li><code>&lt;end-lanelet-id&gt;</code></li>
+<li><code>&lt;vehicle-model&gt;</code></li>
+</ul>
+<div class="highlight"><pre><span></span><code>ros2 launch static_centerline_optimizer static_centerline_optimizer.launch.xml run_backgrond:<span class="o">=</span><span class="nb">false</span> lanelet2_input_file_path:<span class="o">=</span>&lt;input-osm-path&gt; lanelet2_output_file_path:<span class="o">=</span>&lt;output-osm-path&gt; start_lanelet_id:<span class="o">=</span>&lt;start-lane-id&gt; end_lanelet_id:<span class="o">=</span>&lt;end-lane-id&gt; vehicle_model:<span class="o">=</span>&lt;vehicle-model&gt;
+</code></pre></div>
+<p>The default output map path containing the optimized centerline locates <code>/tmp/lanelet2_map.osm</code>.
+If you want to change the output map path, you can remap the path by designating <code>&lt;output-osm-path&gt;</code>.</p>
+<h2 id="visualization">Visualization<a class="headerlink" href="#visualization" title="Permanent link">#</a></h2>
+<p>When launching the path planning server, rviz is launched as well as follows.
+<img alt="rviz" src="media/rviz.png" /></p>
+<ul>
+<li>The yellow footprints are the original ones from the osm map file.<ul>
+<li>FYI: Footprints are generated based on the centerline and vehicle size.</li>
+</ul>
+</li>
+<li>The red footprints are the optimized ones.</li>
+<li>The gray area is the drivable area.</li>
+<li>You can see that the red footprints are inside the drivable area although the yellow ones are outside.</li>
+</ul>
+<h3 id="unsafe-footprints">Unsafe footprints<a class="headerlink" href="#unsafe-footprints" title="Permanent link">#</a></h3>
+<p>Sometimes the optimized centerline footprints are close to the lanes' boundaries.
+We can check how close they are with <code>unsafe footprints</code> marker as follows.</p>
+<p>Footprints' color depends on its distance to the boundaries, and text expresses its distance.</p>
+<p><img alt="rviz" src="media/unsafe_footprints.png" /></p>
+<p>By default, footprints' color is</p>
+<ul>
+<li>when the distance is less than 0.1 [m] : red</li>
+<li>when the distance is less than 0.2 [m] : green</li>
+<li>when the distance is less than 0.3 [m] : blue</li>
 </ul>
 
 
@@ -10579,7 +10745,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../ndt/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ndt" rel="prev">
+        <a href="../scenario_selector/" class="md-footer__link md-footer__link--prev" aria-label="Previous: scenario_selector" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -10588,20 +10754,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              ndt
+              scenario_selector
             </div>
           </div>
         </a>
       
       
         
-        <a href="../ndt_scan_matcher/" class="md-footer__link md-footer__link--next" aria-label="Next: ndt_scan_matcher" rel="next">
+        <a href="../surround_obstacle_checker/" class="md-footer__link md-footer__link--next" aria-label="Next: Surround Obstacle Checker" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              ndt_scan_matcher
+              Surround Obstacle Checker
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -10639,7 +10805,7 @@
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand", "navigation.indexes", "navigation.instant", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top"], "search": "../../assets/javascripts/workers/search.16e2a7d4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.8492ddcf.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d6c3db9e.min.js"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
       
