@@ -42,6 +42,21 @@
 
 #include <Eigen/Core>
 
+template <typename T>
+inline T calc_variance(std::vector<T> & data)
+{
+  // avoid zero division
+  if (data.size() < 1) {
+    return (T)0;
+  }
+  const auto ave = std::accumulate(std::begin(data), std::end(data), 0.0) / data.size();
+  std::transform(
+    std::begin(data), std::end(data), std::begin(data), [ave](const auto & e) { return e - ave; });
+  const auto var =
+    std::inner_product(std::begin(data), std::end(data), std::begin(data), 0.0) / data.size();
+  return var;
+}
+
 constexpr float epsilon = 0.001;
 
 BoundingBoxShapeModel::BoundingBoxShapeModel()
@@ -162,6 +177,41 @@ bool BoundingBoxShapeModel::fitLShape(
   return true;
 }
 
+float BoundingBoxShapeModel::calcVarianceCriterion(
+  const std::vector<float> & C_1, const std::vector<float> & C_2)
+{
+  // Paper : Algo.4 Variance Criterion
+  const float min_c_1 = *std::min_element(C_1.begin(), C_1.end());  // col.2, Algo.4
+  const float max_c_1 = *std::max_element(C_1.begin(), C_1.end());  // col.2, Algo.4
+  const float min_c_2 = *std::min_element(C_2.begin(), C_2.end());  // col.3, Algo.4
+  const float max_c_2 = *std::max_element(C_2.begin(), C_2.end());  // col.3, Algo.4
+
+  std::vector<float> D_1;  // col.4, Algo.4
+  for (const auto & c_1_element : C_1) {
+    const float v = std::min(max_c_1 - c_1_element, c_1_element - min_c_1);
+    D_1.push_back(v * v);
+  }
+
+  std::vector<float> D_2;  // col.5, Algo.4
+  for (const auto & c_2_element : C_2) {
+    const float v = std::min(max_c_2 - c_2_element, c_2_element - min_c_2);
+    D_2.push_back(v * v);
+  }
+
+  std::vector<float> E_1;
+  std::vector<float> E_2;
+  for (size_t i = 0; i < D_1.size(); ++i) {
+    if (D_1.at(i) < D_2.at(i)) {
+      E_1.push_back(D_1.at(i));
+    } else if (D_2.at(i) < D_1.at(i)) {
+      E_2.push_back(D_2.at(i));
+    }
+  }
+  float gamma;
+  gamma = -calc_variance(E_1) - calc_variance(E_2);
+  return gamma;
+}
+
 float BoundingBoxShapeModel::calcClosenessCriterion(
   const std::vector<float> & C_1, const std::vector<float> & C_2)
 {
@@ -241,7 +291,8 @@ float BoundingBoxShapeModel::boostOptimize(
       C_1.push_back(point.x * e_1.x() + point.y * e_1.y());
       C_2.push_back(point.x * e_2.x() + point.y * e_2.y());
     }
-    float q = calcClosenessCriterion(C_1, C_2);
+    // float q = calcClosenessCriterion(C_1, C_2);
+    float q = calcVarianceCriterion(C_1, C_2);
     return -q;
   };
 
