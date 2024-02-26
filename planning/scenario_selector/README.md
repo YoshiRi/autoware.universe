@@ -6,14 +6,14 @@
 
 ### Input topics
 
-| Name                             | Type                                     | Description                                           |
-| -------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
-| `~input/lane_driving/trajectory` | autoware_auto_planning_msgs::Trajectory  | trajectory of LaneDriving scenario                    |
-| `~input/parking/trajectory`      | autoware_auto_planning_msgs::Trajectory  | trajectory of Parking scenario                        |
-| `~input/lanelet_map`             | autoware_auto_mapping_msgs::HADMapBin    |                                                       |
-| `~input/route`                   | autoware_auto_planning_msgs::HADMapRoute | route and goal pose                                   |
-| `~input/odometry`                | nav_msgs::Odometry                       | for checking whether vehicle is stopped               |
-| `is_parking_completed`           | bool (implemented as rosparam)           | whether all split trajectory of Parking are published |
+| Name                             | Type                                    | Description                                           |
+| -------------------------------- | --------------------------------------- | ----------------------------------------------------- |
+| `~input/lane_driving/trajectory` | autoware_auto_planning_msgs::Trajectory | trajectory of LaneDriving scenario                    |
+| `~input/parking/trajectory`      | autoware_auto_planning_msgs::Trajectory | trajectory of Parking scenario                        |
+| `~input/lanelet_map`             | autoware_auto_mapping_msgs::HADMapBin   |                                                       |
+| `~input/route`                   | autoware_planning_msgs::LaneletRoute    | route and goal pose                                   |
+| `~input/odometry`                | nav_msgs::Odometry                      | for checking whether vehicle is stopped               |
+| `is_parking_completed`           | bool (implemented as rosparam)          | whether all split trajectory of Parking are published |
 
 ### Output topics
 
@@ -34,13 +34,7 @@ None
 
 ### Parameters
 
-| Parameter                  | Type   | Description                                                                     |
-| -------------------------- | ------ | ------------------------------------------------------------------------------- |
-| `update_rate`              | double | timer's update rate                                                             |
-| `th_max_message_delay_sec` | double | threshold time of input messages' maximum delay                                 |
-| `th_arrived_distance_m`    | double | threshold distance to check if vehicle has arrived at the trajectory's endpoint |
-| `th_stopped_time_sec`      | double | threshold time to check if vehicle is stopped                                   |
-| `th_stopped_velocity_mps`  | double | threshold velocity to check if vehicle is stopped                               |
+{{ json_to_markdown("planning/scenario_selector/schema/scenario_selector.schema.json") }}
 
 ### Flowchart
 

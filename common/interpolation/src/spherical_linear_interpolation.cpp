@@ -34,13 +34,13 @@ std::vector<geometry_msgs::msg::Quaternion> slerp(
   const std::vector<double> & query_keys)
 {
   // throw exception for invalid arguments
-  interpolation_utils::validateKeys(base_keys, query_keys);
+  const auto validated_query_keys = interpolation_utils::validateKeys(base_keys, query_keys);
   interpolation_utils::validateKeysAndValues(base_keys, base_values);
 
   // calculate linear interpolation
   std::vector<geometry_msgs::msg::Quaternion> query_values;
   size_t key_index = 0;
-  for (const auto query_key : query_keys) {
+  for (const auto query_key : validated_query_keys) {
     while (base_keys.at(key_index + 1) < query_key) {
       ++key_index;
     }
@@ -57,4 +57,15 @@ std::vector<geometry_msgs::msg::Quaternion> slerp(
   return query_values;
 }
 
+geometry_msgs::msg::Quaternion lerpOrientation(
+  const geometry_msgs::msg::Quaternion & o_from, const geometry_msgs::msg::Quaternion & o_to,
+  const double ratio)
+{
+  tf2::Quaternion q_from, q_to;
+  tf2::fromMsg(o_from, q_from);
+  tf2::fromMsg(o_to, q_to);
+
+  const auto q_interpolated = q_from.slerp(q_to, ratio);
+  return tf2::toMsg(q_interpolated);
+}
 }  // namespace interpolation

@@ -176,8 +176,7 @@ void ManualController::onInitialize()
   sub_gear_ = raw_node_->create_subscription<GearReport>(
     "/vehicle/status/gear_status", 10, std::bind(&ManualController::onGear, this, _1));
 
-  client_engage_ = raw_node_->create_client<EngageSrv>(
-    "/api/autoware/set/engage", rmw_qos_profile_services_default);
+  client_engage_ = raw_node_->create_client<EngageSrv>("/api/autoware/set/engage");
 
   pub_gate_mode_ = raw_node_->create_publisher<GateMode>("/control/gate_mode_cmd", rclcpp::QoS(1));
 
@@ -264,9 +263,9 @@ void ManualController::onClickEnableButton()
   {
     auto req = std::make_shared<EngageSrv::Request>();
     req->engage = true;
-    RCLCPP_INFO(raw_node_->get_logger(), "client request");
+    RCLCPP_DEBUG(raw_node_->get_logger(), "client request");
     if (!client_engage_->service_is_ready()) {
-      RCLCPP_INFO(raw_node_->get_logger(), "client is unavailable");
+      RCLCPP_DEBUG(raw_node_->get_logger(), "client is unavailable");
       return;
     }
     client_engage_->async_send_request(

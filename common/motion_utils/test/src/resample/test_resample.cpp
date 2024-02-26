@@ -15,6 +15,7 @@
 #include "motion_utils/constants.hpp"
 #include "motion_utils/resample/resample.hpp"
 #include "tier4_autoware_utils/geometry/boost_geometry.hpp"
+#include "tier4_autoware_utils/geometry/geometry.hpp"
 #include "tier4_autoware_utils/math/constants.hpp"
 #include "tier4_autoware_utils/math/unit_conversion.hpp"
 
@@ -173,6 +174,49 @@ std::vector<double> generateArclength(const size_t num_points, const double inte
   return resampled_arclength;
 }
 }  // namespace
+
+TEST(resample_vector_pose, resample_by_same_interval)
+{
+  using geometry_msgs::msg::Pose;
+  using motion_utils::resamplePoseVector;
+
+  std::vector<Pose> path(10);
+  for (size_t i = 0; i < 10; ++i) {
+    path.at(i) = createPose(i * 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  }
+
+  // same interval
+  {
+    const auto resampled_path = resamplePoseVector(path, 1.0);
+    EXPECT_EQ(path.size(), resampled_path.size());
+    for (size_t i = 0; i < path.size(); ++i) {
+      const auto & p = resampled_path.at(i);
+      const auto & ans_p = path.at(i);
+      EXPECT_NEAR(p.position.x, ans_p.position.x, epsilon);
+      EXPECT_NEAR(p.position.y, ans_p.position.y, epsilon);
+      EXPECT_NEAR(p.position.z, ans_p.position.z, epsilon);
+      EXPECT_NEAR(p.orientation.x, ans_p.orientation.x, epsilon);
+      EXPECT_NEAR(p.orientation.y, ans_p.orientation.y, epsilon);
+      EXPECT_NEAR(p.orientation.z, ans_p.orientation.z, epsilon);
+      EXPECT_NEAR(p.orientation.w, ans_p.orientation.w, epsilon);
+    }
+  }
+
+  // random
+  {
+    const auto resampled_path = resamplePoseVector(path, 0.5);
+    for (size_t i = 0; i < path.size(); ++i) {
+      const auto & p = resampled_path.at(i);
+      EXPECT_NEAR(p.position.x, 0.5 * i, epsilon);
+      EXPECT_NEAR(p.position.y, 0.0, epsilon);
+      EXPECT_NEAR(p.position.z, 0.0, epsilon);
+      EXPECT_NEAR(p.orientation.x, 0.0, epsilon);
+      EXPECT_NEAR(p.orientation.y, 0.0, epsilon);
+      EXPECT_NEAR(p.orientation.z, 0.0, epsilon);
+      EXPECT_NEAR(p.orientation.w, 1.0, epsilon);
+    }
+  }
+}
 
 TEST(resample_path_with_lane_id, resample_path_by_vector)
 {

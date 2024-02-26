@@ -43,6 +43,16 @@ We trained the models using <https://github.com/open-mmlab/mmdetection3d>.
 | `nms_iou_target_class_names`    | list[string] | -             | target classes for IoU-based Non Maximum Suppression          |
 | `nms_iou_search_distance_2d`    | double       | -             | If two objects are farther than the value, NMS isn't applied. |
 | `nms_iou_threshold`             | double       | -             | IoU threshold for the IoU-based Non Maximum Suppression       |
+| `build_only`                    | bool         | `false`       | shutdown the node after TensorRT engine file is built         |
+
+### The `build_only` option
+
+The `lidar_centerpoint` node has `build_only` option to build the TensorRT engine file from the ONNX file.
+Although it is preferred to move all the ROS parameters in `.param.yaml` file in Autoware Universe, the `build_only` option is not moved to the `.param.yaml` file for now, because it may be used as a flag to execute the build as a pre-task. You can execute with the following command:
+
+```bash
+ros2 launch lidar_centerpoint lidar_centerpoint.launch.xml model_name:=centerpoint_tiny model_path:=/home/autoware/autoware_data/lidar_centerpoint model_param_path:=$(ros2 pkg prefix lidar_centerpoint --share)/config/centerpoint_tiny.param.yaml build_only:=true
+```
 
 ## Assumptions / Known limits
 
@@ -51,6 +61,24 @@ We trained the models using <https://github.com/open-mmlab/mmdetection3d>.
 ## Trained Models
 
 You can download the onnx format of trained models by clicking on the links below.
+
+- Centerpoint : [pts_voxel_encoder_centerpoint.onnx](https://awf.ml.dev.web.auto/perception/models/centerpoint/v2/pts_voxel_encoder_centerpoint.onnx), [pts_backbone_neck_head_centerpoint.onnx](https://awf.ml.dev.web.auto/perception/models/centerpoint/v2/pts_backbone_neck_head_centerpoint.onnx)
+- Centerpoint tiny: [pts_voxel_encoder_centerpoint_tiny.onnx](https://awf.ml.dev.web.auto/perception/models/centerpoint/v2/pts_voxel_encoder_centerpoint_tiny.onnx), [pts_backbone_neck_head_centerpoint_tiny.onnx](https://awf.ml.dev.web.auto/perception/models/centerpoint/v2/pts_backbone_neck_head_centerpoint_tiny.onnx)
+
+`Centerpoint` was trained in `nuScenes` (~28k lidar frames) [8] and TIER IV's internal database (~11k lidar frames) for 60 epochs.
+`Centerpoint tiny` was trained in `Argoverse 2` (~110k lidar frames) [9] and TIER IV's internal database (~11k lidar frames) for 20 epochs.
+
+## Standalone inference and visualization
+
+In addition to its use as a standard ROS node, `lidar_centerpoint` can also be used to perform inferences in an isolated manner.
+To do so, execute the following launcher, where `pcd_path` is the path of the pointcloud to be used for inference.
+
+```bash
+ros2 launch lidar_centerpoint single_inference_lidar_centerpoint.launch.xml pcd_path:=test_pointcloud.pcd detections_path:=test_detections.ply
+```
+
+`lidar_centerpoint` generates a `ply` file in the provided `detections_path`, which contains the detections as triangle meshes.
+These detections can be visualized by most 3D tools, but we also integrate a visualization UI using `Open3D` which is launched alongside `lidar_centerpoint`.
 
 ### Changelog
 
@@ -95,7 +123,7 @@ Example:
 
 [1] Yin, Tianwei, Xingyi Zhou, and Philipp Krähenbühl. "Center-based 3d object detection and tracking." arXiv preprint arXiv:2006.11275 (2020).
 
-[2] Lang, Alex H., et al. "Pointpillars: Fast encoders for object detection from point clouds." Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2019.
+[2] Lang, Alex H., et al. "PointPillars: Fast encoders for object detection from point clouds." Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2019.
 
 [3] <https://github.com/tianweiy/CenterPoint>
 
@@ -106,6 +134,10 @@ Example:
 [6] <https://github.com/yukkysaito/autoware_perception>
 
 [7] <https://github.com/NVIDIA-AI-IOT/CUDA-PointPillars>
+
+[8] <https://www.nuscenes.org/nuscenes>
+
+[9] <https://www.argoverse.org/av2.html>
 
 ## (Optional) Future extensions / Unimplemented parts
 

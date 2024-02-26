@@ -38,11 +38,18 @@ EuclideanClusterNode::EuclideanClusterNode(const rclcpp::NodeOptions & options)
   cluster_pub_ = this->create_publisher<tier4_perception_msgs::msg::DetectedObjectsWithFeature>(
     "output", rclcpp::QoS{1});
   debug_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("debug/clusters", 1);
+  stop_watch_ptr_ = std::make_unique<tier4_autoware_utils::StopWatch<std::chrono::milliseconds>>();
+  debug_publisher_ =
+    std::make_unique<tier4_autoware_utils::DebugPublisher>(this, "euclidean_cluster");
+  stop_watch_ptr_->tic("cyclic_time");
+  stop_watch_ptr_->tic("processing_time");
 }
 
 void EuclideanClusterNode::onPointCloud(
   const sensor_msgs::msg::PointCloud2::ConstSharedPtr input_msg)
 {
+  stop_watch_ptr_->toc("processing_time", true);
+
   // convert ros to pcl
   pcl::PointCloud<pcl::PointXYZ>::Ptr raw_pointcloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromROSMsg(*input_msg, *raw_pointcloud_ptr);
@@ -57,13 +64,24 @@ void EuclideanClusterNode::onPointCloud(
   cluster_pub_->publish(output);
 
   // build debug msg
-  if (debug_pub_->get_subscription_count() < 1) {
-    return;
-  }
-  {
+  if (debug_pub_->get_subscription_count() >= 1) {
     sensor_msgs::msg::PointCloud2 debug;
     convertObjectMsg2SensorMsg(output, debug);
     debug_pub_->publish(debug);
+  }
+  if (debug_publisher_) {
+    const double cyclic_time_ms = stop_watch_ptr_->toc("cyclic_time", true);
+    const double processing_time_ms = stop_watch_ptr_->toc("processing_time", true);
+    const double pipeline_latency_ms =
+      std::chrono::duration<double, std::milli>(
+        std::chrono::nanoseconds((this->get_clock()->now() - output.header.stamp).nanoseconds()))
+        .count();
+    debug_publisher_->publish<tier4_debug_msgs::msg::Float64Stamped>(
+      "debug/cyclic_time_ms", cyclic_time_ms);
+    debug_publisher_->publish<tier4_debug_msgs::msg::Float64Stamped>(
+      "debug/processing_time_ms", processing_time_ms);
+    debug_publisher_->publish<tier4_debug_msgs::msg::Float64Stamped>(
+      "debug/pipeline_latency_ms", pipeline_latency_ms);
   }
 }
 

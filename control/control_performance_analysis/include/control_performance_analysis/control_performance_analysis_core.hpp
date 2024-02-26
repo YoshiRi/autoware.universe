@@ -19,10 +19,9 @@
 #include "control_performance_analysis/msg/driving_monitor_stamped.hpp"
 #include "control_performance_analysis/msg/error_stamped.hpp"
 #include "control_performance_analysis/msg/float_stamped.hpp"
-#include "motion_common/motion_common.hpp"
 #include "motion_utils/trajectory/trajectory.hpp"
 
-#include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 #include <rclcpp/time.hpp>
 
 #include <autoware_auto_control_msgs/msg/ackermann_control_command.hpp>
@@ -34,6 +33,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -43,6 +43,7 @@ using autoware_auto_control_msgs::msg::AckermannControlCommand;
 using autoware_auto_planning_msgs::msg::Trajectory;
 using autoware_auto_vehicle_msgs::msg::SteeringReport;
 using control_performance_analysis::msg::DrivingMonitorStamped;
+using control_performance_analysis::msg::Error;
 using control_performance_analysis::msg::ErrorStamped;
 using control_performance_analysis::msg::FloatStamped;
 using geometry_msgs::msg::Pose;
@@ -79,7 +80,7 @@ public:
   void setOdomHistory(const Odometry & odom);
   void setSteeringStatus(const SteeringReport & steering);
 
-  void findCurveRefIdx();
+  std::optional<int32_t> findCurveRefIdx();
   std::pair<bool, int32_t> findClosestPrevWayPointIdx_path_direction();
   double estimateCurvature();
   double estimatePurePursuitCurvature();
@@ -99,8 +100,7 @@ private:
   Params p_;
 
   // Variables Received Outside
-  std::shared_ptr<PoseArray> current_waypoints_ptr_;
-  std::shared_ptr<std::vector<double>> current_waypoints_vel_ptr_;
+  std::shared_ptr<autoware_auto_planning_msgs::msg::Trajectory> current_trajectory_ptr_;
   std::shared_ptr<Pose> current_vec_pose_ptr_;
   std::shared_ptr<std::vector<Odometry>> odom_history_ptr_;  // velocities at k-2, k-1, k, k+1
   std::shared_ptr<AckermannControlCommand> current_control_ptr_;
@@ -113,9 +113,8 @@ private:
 
   // Variables computed
 
-  std::unique_ptr<int32_t> idx_prev_wp_;       // the waypoint index, vehicle
-  std::unique_ptr<int32_t> idx_curve_ref_wp_;  // index of waypoint corresponds to front axle center
-  std::unique_ptr<int32_t> idx_next_wp_;       //  the next waypoint index, vehicle heading to
+  std::unique_ptr<int32_t> idx_prev_wp_;  // the waypoint index, vehicle
+  std::unique_ptr<int32_t> idx_next_wp_;  //  the next waypoint index, vehicle heading to
   std::unique_ptr<ErrorStamped> prev_target_vars_{};
   std::unique_ptr<DrivingMonitorStamped> prev_driving_vars_{};
   std::shared_ptr<Pose> interpolated_pose_ptr_;

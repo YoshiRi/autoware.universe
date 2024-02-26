@@ -24,6 +24,7 @@ ament_auto_add_library(shape_estimation_lib SHARED
   lib/filter/car_filter.cpp
   lib/filter/bus_filter.cpp
   lib/filter/truck_filter.cpp
+  lib/filter/trailer_filter.cpp
   lib/filter/no_filter.cpp
   lib/filter/utils.cpp
   lib/corrector/no_corrector.cpp
@@ -63,4 +64,5 @@ rclcpp_components_register_node(shape_estimation_node
 
 ament_auto_package(INSTALL_TO_SHARE
   launch
+  config
 )

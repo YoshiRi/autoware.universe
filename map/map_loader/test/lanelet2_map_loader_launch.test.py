@@ -27,7 +27,6 @@ import pytest
 
 @pytest.mark.launch_test
 def generate_test_description():
-
     lanelet2_map_path = os.path.join(
         get_package_share_directory("map_loader"), "test/data/test_map.osm"
     )
@@ -35,7 +34,7 @@ def generate_test_description():
     lanelet2_map_loader = Node(
         package="map_loader",
         executable="lanelet2_map_loader",
-        parameters=[{"lanelet2_map_path": lanelet2_map_path}],
+        parameters=[{"lanelet2_map_path": lanelet2_map_path, "center_line_resolution": 5.0}],
     )
 
     context = {}

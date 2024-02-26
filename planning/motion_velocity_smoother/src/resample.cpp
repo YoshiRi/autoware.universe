@@ -15,7 +15,9 @@
 #include "motion_velocity_smoother/resample.hpp"
 
 #include "motion_utils/resample/resample.hpp"
-#include "motion_utils/trajectory/tmp_conversion.hpp"
+#include "motion_utils/trajectory/conversion.hpp"
+#include "motion_utils/trajectory/trajectory.hpp"
+#include "motion_velocity_smoother/trajectory_utils.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -24,7 +26,7 @@ namespace motion_velocity_smoother
 {
 namespace resampling
 {
-boost::optional<TrajectoryPoints> resampleTrajectory(
+TrajectoryPoints resampleTrajectory(
   const TrajectoryPoints & input, const double v_current,
   const geometry_msgs::msg::Pose & current_pose, const double nearest_dist_threshold,
   const double nearest_yaw_threshold, const ResampleParam & param, const bool use_zoh_for_v)
@@ -142,7 +144,7 @@ boost::optional<TrajectoryPoints> resampleTrajectory(
   return output;
 }
 
-boost::optional<TrajectoryPoints> resampleTrajectory(
+TrajectoryPoints resampleTrajectory(
   const TrajectoryPoints & input, const geometry_msgs::msg::Pose & current_pose,
   const double nearest_dist_threshold, const double nearest_yaw_threshold,
   const ResampleParam & param, const double nominal_ds, const bool use_zoh_for_v)
@@ -187,7 +189,7 @@ boost::optional<TrajectoryPoints> resampleTrajectory(
   double dist_i{0.0};
   bool is_zero_point_included{false};
   bool is_endpoint_included{false};
-  while (true) {
+  while (rclcpp::ok()) {
     double ds = nominal_ds;
     if (start_stop_arclength_value <= dist_i && dist_i <= stop_arclength_value) {
       // Dense sampling before the stop point

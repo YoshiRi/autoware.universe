@@ -18,7 +18,6 @@ One optional function is regularization. Please see the regularization chapter i
 | Name                                | Type                                            | Description                           |
 | ----------------------------------- | ----------------------------------------------- | ------------------------------------- |
 | `ekf_pose_with_covariance`          | `geometry_msgs::msg::PoseWithCovarianceStamped` | initial pose                          |
-| `pointcloud_map`                    | `sensor_msgs::msg::PointCloud2`                 | map pointcloud                        |
 | `points_raw`                        | `sensor_msgs::msg::PointCloud2`                 | sensor pointcloud                     |
 | `sensing/gnss/pose_with_covariance` | `sensor_msgs::msg::PoseWithCovarianceStamped`   | base position for regularization term |
 
@@ -32,10 +31,15 @@ One optional function is regularization. Please see the regularization chapter i
 | `ndt_pose_with_covariance`        | `geometry_msgs::msg::PoseWithCovarianceStamped` | estimated pose with covariance                                                                                                           |
 | `/diagnostics`                    | `diagnostic_msgs::msg::DiagnosticArray`         | diagnostics                                                                                                                              |
 | `points_aligned`                  | `sensor_msgs::msg::PointCloud2`                 | [debug topic] pointcloud aligned by scan matching                                                                                        |
+| `points_aligned_no_ground`        | `sensor_msgs::msg::PointCloud2`                 | [debug topic] no ground pointcloud aligned by scan matching                                                                              |
 | `initial_pose_with_covariance`    | `geometry_msgs::msg::PoseWithCovarianceStamped` | [debug topic] initial pose used in scan matching                                                                                         |
+| `multi_ndt_pose`                  | `geometry_msgs::msg::PoseArray`                 | [debug topic] estimated poses from multiple initial poses in real-time covariance estimation                                             |
+| `multi_initial_pose`              | `geometry_msgs::msg::PoseArray`                 | [debug topic] initial poses for real-time covariance estimation                                                                          |
 | `exe_time_ms`                     | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] execution time for scan matching [ms]                                                                                      |
 | `transform_probability`           | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] score of scan matching                                                                                                     |
+| `no_ground_transform_probability` | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] score of scan matching based on no ground LiDAR scan                                                                       |
 | `iteration_num`                   | `tier4_debug_msgs::msg::Int32Stamped`           | [debug topic] number of scan matching iterations                                                                                         |
+| `initial_to_result_relative_pose` | `geometry_msgs::msg::PoseStamped`               | [debug topic] relative pose between the initial point and the convergence point                                                          |
 | `initial_to_result_distance`      | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] distance difference between the initial point and the convergence point [m]                                                |
 | `initial_to_result_distance_old`  | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] distance difference between the older of the two initial points used in linear interpolation and the convergence point [m] |
 | `initial_to_result_distance_new`  | `tier4_debug_msgs::msg::Float32Stamped`         | [debug topic] distance difference between the newer of the two initial points used in linear interpolation and the convergence point [m] |
@@ -52,20 +56,29 @@ One optional function is regularization. Please see the regularization chapter i
 
 ### Core Parameters
 
-| Name                                    | Type   | Description                                                                                     |
-| --------------------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
-| `base_frame`                            | string | Vehicle reference frame                                                                         |
-| `input_sensor_points_queue_size`        | int    | Subscriber queue size                                                                           |
-| `trans_epsilon`                         | double | The maximum difference between two consecutive transformations in order to consider convergence |
-| `step_size`                             | double | The newton line search maximum step length                                                      |
-| `resolution`                            | double | The ND voxel grid resolution [m]                                                                |
-| `max_iterations`                        | int    | The number of iterations required to calculate alignment                                        |
-| `converged_param_type`                  | int    | The type of indicators for scan matching score (0: TP, 1: NVTL)                                 |
-| `converged_param_transform_probability` | double | Threshold for deciding whether to trust the estimation result                                   |
-| `neighborhood_search_method`            | int    | neighborhood search method (0=KDTREE, 1=DIRECT26, 2=DIRECT7, 3=DIRECT1)                         |
-| `num_threads`                           | int    | Number of threads used for parallel computing                                                   |
+#### Frame
 
-(TP: Transform Probability, NVTL: Nearest Voxel Transform Probability)
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/frame.json") }}
+
+#### Ndt
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/ndt.json") }}
+
+#### Initial Pose Estimation
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/initial_pose_estimation.json") }}
+
+#### Validation
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/validation.json") }}
+
+#### Score Estimation
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/score_estimation.json") }}
+
+#### Covariance
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/covariance.json") }}
 
 ## Regularization
 
@@ -141,10 +154,7 @@ This is because if the base position is far off from the true value, NDT scan ma
 
 ### Parameters
 
-| Name                          | Type   | Description                                                            |
-| ----------------------------- | ------ | ---------------------------------------------------------------------- |
-| `regularization_enabled`      | bool   | Flag to add regularization term to NDT optimization (FALSE by default) |
-| `regularization_scale_factor` | double | Coefficient of the regularization term.                                |
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/ndt_regularization.json") }}
 
 Regularization is disabled by default because GNSS is not always accurate enough to serve the appropriate base position in any scenes.
 
@@ -169,3 +179,75 @@ The color of the trajectory indicates the error (meter) from the reference traje
 - The right figure shows that the regularization suppresses the longitudinal error.
 
 <img src="./media/trajectory_without_regularization.png" alt="drawing" width="300"/> <img src="./media/trajectory_with_regularization.png" alt="drawing" width="300"/>
+
+## Dynamic map loading
+
+Autoware supports dynamic map loading feature for `ndt_scan_matcher`. Using this feature, NDT dynamically requests for the surrounding pointcloud map to `pointcloud_map_loader`, and then receive and preprocess the map in an online fashion.
+
+Using the feature, `ndt_scan_matcher` can theoretically handle any large size maps in terms of memory usage. (Note that it is still possible that there exists a limitation due to other factors, e.g. floating-point error)
+
+<img src="./media/differential_area_loading.gif" alt="drawing" width="400"/>
+
+### Additional interfaces
+
+#### Additional outputs
+
+| Name                          | Type                            | Description                                       |
+| ----------------------------- | ------------------------------- | ------------------------------------------------- |
+| `debug/loaded_pointcloud_map` | `sensor_msgs::msg::PointCloud2` | pointcloud maps used for localization (for debug) |
+
+#### Additional client
+
+| Name                | Type                                                   | Description        |
+| ------------------- | ------------------------------------------------------ | ------------------ |
+| `client_map_loader` | `autoware_map_msgs::srv::GetDifferentialPointCloudMap` | map loading client |
+
+### Parameters
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/dynamic_map_loading.json") }}
+
+### Notes for dynamic map loading
+
+To use dynamic map loading feature for `ndt_scan_matcher`, you also need to split the PCD files into grids (recommended size: 20[m] x 20[m])
+
+Note that the dynamic map loading may FAIL if the map is split into two or more large size map (e.g. 1000[m] x 1000[m]). Please provide either of
+
+- one PCD map file
+- multiple PCD map files divided into small size (~20[m])
+
+Here is a split PCD map for `sample-map-rosbag` from Autoware tutorial: [`sample-map-rosbag_split.zip`](https://github.com/autowarefoundation/autoware.universe/files/10349104/sample-map-rosbag_split.zip)
+
+|   PCD files    | How NDT loads map(s) |
+| :------------: | :------------------: |
+|  single file   |  at once (standard)  |
+| multiple files |     dynamically      |
+
+## Scan matching score based on no ground LiDAR scan
+
+### Abstract
+
+This is a function that uses no ground LiDAR scan to estimate the scan matching score. This score can reflect the current localization performance more accurately.
+[related issue](https://github.com/autowarefoundation/autoware.universe/issues/2044).
+
+### Parameters
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/score_estimation_no_ground_points.json") }}
+
+## 2D real-time covariance estimation
+
+### Abstract
+
+Calculate 2D covariance (xx, xy, yx, yy) in real time using the NDT convergence from multiple initial poses.
+The arrangement of multiple initial poses is efficiently limited by the Hessian matrix of the NDT score function.
+In this implementation, the number of initial positions is fixed to simplify the code.
+The covariance can be seen as error ellipse from ndt_pose_with_covariance setting on rviz2.
+[original paper](https://www.fujipress.jp/jrm/rb/robot003500020435/).
+
+Note that this function may spoil healthy system behavior if it consumes much calculation resources.
+
+### Parameters
+
+initial_pose_offset_model is rotated around (x,y) = (0,0) in the direction of the first principal component of the Hessian matrix.
+initial_pose_offset_model_x & initial_pose_offset_model_y must have the same number of elements.
+
+{{ json_to_markdown("localization/ndt_scan_matcher/schema/sub/covariance_covariance_estimation.json") }}

@@ -28,6 +28,7 @@ include_directories(
 set(DETECTION_BY_TRACKER_SRC
   src/detection_by_tracker_core.cpp
   src/likelihood_field_tracker.cpp
+  src/utils.cpp
 )
 
 ament_auto_add_library(detection_by_tracker_node SHARED
@@ -58,6 +59,8 @@ rclcpp_components_register_node(likelihood_field_tracker_node
   EXECUTABLE likelihood_field_tracker
 )
 
-ament_auto_package(INSTALL_TO_SHARE
+ament_auto_package(
+  INSTALL_TO_SHARE
   launch
+  config
 )

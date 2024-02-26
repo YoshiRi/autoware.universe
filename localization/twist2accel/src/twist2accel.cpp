@@ -22,12 +22,6 @@
 #include <string>
 #include <utility>
 
-// clang-format off
-#define PRINT_MAT(X) std::cout << #X << ":\n" << X << std::endl << std::endl
-#define DEBUG_INFO(...) {if (show_debug_info_) {RCLCPP_INFO(__VA_ARGS__);}}
-#define DEBUG_PRINT_MAT(X) {if (show_debug_info_) {std::cout << #X << ": " << X << std::endl;}}
-
-// clang-format on
 using std::placeholders::_1;
 
 Twist2Accel::Twist2Accel(const std::string & node_name, const rclcpp::NodeOptions & node_options)
@@ -41,8 +35,8 @@ Twist2Accel::Twist2Accel(const std::string & node_name, const rclcpp::NodeOption
   pub_accel_ = create_publisher<geometry_msgs::msg::AccelWithCovarianceStamped>("output/accel", 1);
 
   prev_twist_ptr_ = nullptr;
-  accel_lowpass_gain_ = declare_parameter("accel_lowpass_gain", 0.5);
-  use_odom_ = declare_parameter("use_odom", true);
+  accel_lowpass_gain_ = declare_parameter<double>("accel_lowpass_gain");
+  use_odom_ = declare_parameter<bool>("use_odom");
 
   lpf_alx_ptr_ = std::make_shared<LowpassFilter1d>(accel_lowpass_gain_);
   lpf_aly_ptr_ = std::make_shared<LowpassFilter1d>(accel_lowpass_gain_);

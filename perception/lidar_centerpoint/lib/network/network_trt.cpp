@@ -39,9 +39,8 @@ bool VoxelEncoderTRT::setProfile(
 }
 
 HeadTRT::HeadTRT(
-  const std::vector<std::size_t> & out_channel_sizes, const CenterPointConfig & config,
-  const bool verbose)
-: TensorRTWrapper(config, verbose), out_channel_sizes_(out_channel_sizes)
+  const std::vector<std::size_t> & out_channel_sizes, const CenterPointConfig & config)
+: TensorRTWrapper(config), out_channel_sizes_(out_channel_sizes)
 {
 }
 
@@ -60,6 +59,14 @@ bool HeadTRT::setProfile(
 
   for (std::size_t ci = 0; ci < out_channel_sizes_.size(); ci++) {
     auto out_name = network.getOutput(ci)->getName();
+
+    if (
+      out_name == std::string("heatmap") &&
+      network.getOutput(ci)->getDimensions().d[1] != static_cast<int32_t>(out_channel_sizes_[ci])) {
+      tensorrt_common::LOG_ERROR(logger_)
+        << "Expected and actual number of classes do not match" << std::endl;
+      return false;
+    }
     auto out_dims = nvinfer1::Dims4(
       config_.batch_size_, out_channel_sizes_[ci], config_.down_grid_size_y_,
       config_.down_grid_size_x_);

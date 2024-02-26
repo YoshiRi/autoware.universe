@@ -15,7 +15,6 @@
 #ifndef SIMPLE_PLANNING_SIMULATOR__SIMPLE_PLANNING_SIMULATOR_CORE_HPP_
 #define SIMPLE_PLANNING_SIMULATOR__SIMPLE_PLANNING_SIMULATOR_CORE_HPP_
 
-#include "common/types.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "simple_planning_simulator/vehicle_model/sim_model_interface.hpp"
 #include "simple_planning_simulator/visibility_control.hpp"
@@ -23,6 +22,7 @@
 
 #include "autoware_auto_control_msgs/msg/ackermann_control_command.hpp"
 #include "autoware_auto_geometry_msgs/msg/complex32.hpp"
+#include "autoware_auto_mapping_msgs/msg/had_map_bin.hpp"
 #include "autoware_auto_planning_msgs/msg/trajectory.hpp"
 #include "autoware_auto_vehicle_msgs/msg/control_mode_command.hpp"
 #include "autoware_auto_vehicle_msgs/msg/control_mode_report.hpp"
@@ -43,9 +43,12 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "tier4_external_api_msgs/srv/initialize_pose.hpp"
 
+#include <lanelet2_core/geometry/Lanelet.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -58,12 +61,10 @@ namespace simulation
 {
 namespace simple_planning_simulator
 {
-using autoware::common::types::bool8_t;
-using autoware::common::types::float32_t;
-using autoware::common::types::float64_t;
 
 using autoware_auto_control_msgs::msg::AckermannControlCommand;
 using autoware_auto_geometry_msgs::msg::Complex32;
+using autoware_auto_mapping_msgs::msg::HADMapBin;
 using autoware_auto_planning_msgs::msg::Trajectory;
 using autoware_auto_vehicle_msgs::msg::ControlModeReport;
 using autoware_auto_vehicle_msgs::msg::Engage;
@@ -83,20 +84,22 @@ using geometry_msgs::msg::PoseStamped;
 using geometry_msgs::msg::PoseWithCovarianceStamped;
 using geometry_msgs::msg::TransformStamped;
 using geometry_msgs::msg::Twist;
+using geometry_msgs::msg::TwistStamped;
 using nav_msgs::msg::Odometry;
+using sensor_msgs::msg::Imu;
 using tier4_external_api_msgs::srv::InitializePose;
 
 class DeltaTime
 {
 public:
   DeltaTime() : prev_updated_time_ptr_(nullptr) {}
-  float64_t get_dt(const rclcpp::Time & now)
+  double get_dt(const rclcpp::Time & now)
   {
     if (prev_updated_time_ptr_ == nullptr) {
       prev_updated_time_ptr_ = std::make_shared<rclcpp::Time>(now);
       return 0.0;
     }
-    const float64_t dt = (now - *prev_updated_time_ptr_).seconds();
+    const double dt = (now - *prev_updated_time_ptr_).seconds();
     *prev_updated_time_ptr_ = now;
     return dt;
   }
@@ -128,6 +131,7 @@ private:
   rclcpp::Publisher<Odometry>::SharedPtr pub_odom_;
   rclcpp::Publisher<SteeringReport>::SharedPtr pub_steer_;
   rclcpp::Publisher<AccelWithCovarianceStamped>::SharedPtr pub_acc_;
+  rclcpp::Publisher<Imu>::SharedPtr pub_imu_;
   rclcpp::Publisher<ControlModeReport>::SharedPtr pub_control_mode_report_;
   rclcpp::Publisher<GearReport>::SharedPtr pub_gear_report_;
   rclcpp::Publisher<TurnIndicatorsReport>::SharedPtr pub_turn_indicators_report_;
@@ -142,7 +146,9 @@ private:
   rclcpp::Subscription<VehicleControlCommand>::SharedPtr sub_vehicle_cmd_;
   rclcpp::Subscription<AckermannControlCommand>::SharedPtr sub_ackermann_cmd_;
   rclcpp::Subscription<AckermannControlCommand>::SharedPtr sub_manual_ackermann_cmd_;
+  rclcpp::Subscription<HADMapBin>::SharedPtr sub_map_;
   rclcpp::Subscription<PoseWithCovarianceStamped>::SharedPtr sub_init_pose_;
+  rclcpp::Subscription<TwistStamped>::SharedPtr sub_init_twist_;
   rclcpp::Subscription<Trajectory>::SharedPtr sub_trajectory_;
   rclcpp::Subscription<Engage>::SharedPtr sub_engage_;
 
@@ -158,38 +164,43 @@ private:
   rcl_interfaces::msg::SetParametersResult on_parameter(
     const std::vector<rclcpp::Parameter> & parameters);
 
+  lanelet::ConstLanelets road_lanelets_;
+
   /* tf */
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
 
   /* received & published topics */
-  VelocityReport current_velocity_;
-  Odometry current_odometry_;
-  SteeringReport current_steer_;
-  AckermannControlCommand current_ackermann_cmd_;
-  AckermannControlCommand current_manual_ackermann_cmd_;
-  GearCommand current_gear_cmd_;
-  GearCommand current_manual_gear_cmd_;
-  TurnIndicatorsCommand::ConstSharedPtr current_turn_indicators_cmd_ptr_;
-  HazardLightsCommand::ConstSharedPtr current_hazard_lights_cmd_ptr_;
-  Trajectory::ConstSharedPtr current_trajectory_ptr_;
-  bool simulate_motion_;  //!< stop vehicle motion simulation if false
-  ControlModeReport current_control_mode_;
+  PoseWithCovarianceStamped::ConstSharedPtr initial_pose_{};
+  TwistStamped initial_twist_{};
+  VelocityReport current_velocity_{};
+  Odometry current_odometry_{};
+  SteeringReport current_steer_{};
+  AckermannControlCommand current_ackermann_cmd_{};
+  AckermannControlCommand current_manual_ackermann_cmd_{};
+  GearCommand current_gear_cmd_{};
+  GearCommand current_manual_gear_cmd_{};
+  TurnIndicatorsCommand::ConstSharedPtr current_turn_indicators_cmd_ptr_{};
+  HazardLightsCommand::ConstSharedPtr current_hazard_lights_cmd_ptr_{};
+  Trajectory::ConstSharedPtr current_trajectory_ptr_{};
+  bool simulate_motion_ = true;  //!< stop vehicle motion simulation if false
+  ControlModeReport current_control_mode_{};
+  bool enable_road_slope_simulation_ = true;
 
   /* frame_id */
-  std::string simulated_frame_id_;  //!< @brief simulated vehicle frame id
-  std::string origin_frame_id_;     //!< @brief map frame_id
+  std::string simulated_frame_id_ = "";  //!< @brief simulated vehicle frame id
+  std::string origin_frame_id_ = "";     //!< @brief map frame_id
 
   /* flags */
-  bool8_t is_initialized_;         //!< @brief flag to check the initial position is set
-  bool8_t add_measurement_noise_;  //!< @brief flag to add measurement noise
+  bool is_initialized_ = false;         //!< @brief flag to check the initial position is set
+  bool add_measurement_noise_ = false;  //!< @brief flag to add measurement noise
 
-  DeltaTime delta_time_;  //!< @brief to calculate delta time
+  DeltaTime delta_time_{};  //!< @brief to calculate delta time
 
-  MeasurementNoiseGenerator measurement_noise_;  //!< @brief for measurement noise
+  MeasurementNoiseGenerator measurement_noise_{};  //!< @brief for measurement noise
 
-  float64_t x_stddev_;  //!< @brief x standard deviation for dummy covariance in map coordinate
-  float64_t y_stddev_;  //!< @brief y standard deviation for dummy covariance in map coordinate
+  double x_stddev_ = 0.0;  //!< @brief x standard deviation for dummy covariance in map coordinate
+  double y_stddev_ = 0.0;  //!< @brief y standard deviation for dummy covariance in map coordinate
 
   /* vehicle model */
   enum class VehicleModelType {
@@ -198,7 +209,8 @@ private:
     DELAY_STEER_ACC = 2,
     DELAY_STEER_ACC_GEARED = 3,
     IDEAL_STEER_VEL = 4,
-    DELAY_STEER_VEL = 5
+    DELAY_STEER_VEL = 5,
+    DELAY_STEER_MAP_ACC_GEARED = 6
   } vehicle_model_type_;  //!< @brief vehicle model type to decide the model dynamics
   std::shared_ptr<SimModelInterface> vehicle_model_ptr_;  //!< @brief vehicle model pointer
 
@@ -210,7 +222,7 @@ private:
   /**
    * @brief set input steering, velocity, and acceleration of the vehicle model
    */
-  void set_input(const AckermannControlCommand & cmd);
+  void set_input(const AckermannControlCommand & cmd, const double acc_by_slope);
 
   /**
    * @brief set current_vehicle_state_ with received message
@@ -223,9 +235,19 @@ private:
   void on_hazard_lights_cmd(const HazardLightsCommand::ConstSharedPtr msg);
 
   /**
+   * @brief subscribe lanelet map
+   */
+  void on_map(const HADMapBin::ConstSharedPtr msg);
+
+  /**
    * @brief set initial pose for simulation with received message
    */
   void on_initialpose(const PoseWithCovarianceStamped::ConstSharedPtr msg);
+
+  /**
+   * @brief set initial twist for simulation with received message
+   */
+  void on_initialtwist(const TwistStamped::ConstSharedPtr msg);
 
   /**
    * @brief set initial pose for simulation with received request
@@ -248,16 +270,17 @@ private:
    * @brief ControlModeRequest server
    */
   void on_control_mode_request(
-    const ControlModeCommand::Request::SharedPtr request,
+    const ControlModeCommand::Request::ConstSharedPtr request,
     const ControlModeCommand::Response::SharedPtr response);
 
   /**
    * @brief get z-position from trajectory
    * @param [in] x current x-position
    * @param [in] y current y-position
+   * @param [in] prev_odometry odometry calculated in the previous step
    * @return get z-position from trajectory
    */
-  double get_z_pose_from_trajectory(const double x, const double y);
+  double get_z_pose_from_trajectory(const double x, const double y, const Odometry & prev_odometry);
 
   /**
    * @brief get transform from two frame_ids
@@ -266,6 +289,12 @@ private:
    * @return transform from parent frame to child frame
    */
   TransformStamped get_transform_msg(const std::string parent_frame, const std::string child_frame);
+
+  /**
+   * @brief calculate ego pitch angle from trajectory
+   * @return ego pitch angle
+   */
+  double calculate_ego_pitch() const;
 
   /**
    * @brief timer callback for simulation with loop_rate
@@ -321,6 +350,11 @@ private:
    * @brief publish acceleration
    */
   void publish_acceleration();
+
+  /**
+   * @brief publish imu
+   */
+  void publish_imu();
 
   /**
    * @brief publish control_mode report

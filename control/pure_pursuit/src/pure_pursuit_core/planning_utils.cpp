@@ -22,6 +22,21 @@ namespace pure_pursuit
 {
 namespace planning_utils
 {
+double calcArcLengthFromWayPoint(
+  const autoware_auto_planning_msgs::msg::Trajectory & input_path, const size_t src_idx,
+  const size_t dst_idx)
+{
+  double length = 0;
+  for (size_t i = src_idx; i < dst_idx; ++i) {
+    const double dx_wp =
+      input_path.points.at(i + 1).pose.position.x - input_path.points.at(i).pose.position.x;
+    const double dy_wp =
+      input_path.points.at(i + 1).pose.position.y - input_path.points.at(i).pose.position.y;
+    length += std::hypot(dx_wp, dy_wp);
+  }
+  return length;
+}
+
 double calcCurvature(
   const geometry_msgs::msg::Point & target, const geometry_msgs::msg::Pose & current_pose)
 {
@@ -182,7 +197,10 @@ bool isInPolygon(
   return isInPolygon<tf2::Vector3>(polygon_conv, point_conv);
 }
 
-double kmph2mps(const double velocity_kmph) { return (velocity_kmph * 1000) / (60 * 60); }
+double kmph2mps(const double velocity_kmph)
+{
+  return (velocity_kmph * 1000) / (60 * 60);
+}
 
 double normalizeEulerAngle(const double euler)
 {

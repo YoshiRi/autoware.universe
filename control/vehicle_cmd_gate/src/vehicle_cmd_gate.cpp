@@ -14,14 +14,18 @@
 
 #include "vehicle_cmd_gate.hpp"
 
+#include "marker_helper.hpp"
+
 #include <rclcpp/logging.hpp>
 #include <tier4_api_utils/tier4_api_utils.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace vehicle_cmd_gate
 {
@@ -51,130 +55,169 @@ VehicleCmdGate::VehicleCmdGate(const rclcpp::NodeOptions & node_options)
   rclcpp::QoS durable_qos{1};
   durable_qos.transient_local();
 
+  // Stop Checker
+  vehicle_stop_checker_ = std::make_unique<VehicleStopChecker>(this);
+
   // Publisher
   vehicle_cmd_emergency_pub_ =
-    this->create_publisher<VehicleEmergencyStamped>("output/vehicle_cmd_emergency", durable_qos);
-  control_cmd_pub_ =
-    this->create_publisher<AckermannControlCommand>("output/control_cmd", durable_qos);
-  gear_cmd_pub_ = this->create_publisher<GearCommand>("output/gear_cmd", durable_qos);
+    create_publisher<VehicleEmergencyStamped>("output/vehicle_cmd_emergency", durable_qos);
+  control_cmd_pub_ = create_publisher<AckermannControlCommand>("output/control_cmd", durable_qos);
+  gear_cmd_pub_ = create_publisher<GearCommand>("output/gear_cmd", durable_qos);
   turn_indicator_cmd_pub_ =
-    this->create_publisher<TurnIndicatorsCommand>("output/turn_indicators_cmd", durable_qos);
+    create_publisher<TurnIndicatorsCommand>("output/turn_indicators_cmd", durable_qos);
   hazard_light_cmd_pub_ =
-    this->create_publisher<HazardLightsCommand>("output/hazard_lights_cmd", durable_qos);
+    create_publisher<HazardLightsCommand>("output/hazard_lights_cmd", durable_qos);
 
-  gate_mode_pub_ = this->create_publisher<GateMode>("output/gate_mode", durable_qos);
-  engage_pub_ = this->create_publisher<EngageMsg>("output/engage", durable_qos);
-  pub_external_emergency_ =
-    this->create_publisher<Emergency>("output/external_emergency", durable_qos);
-  operation_mode_pub_ = this->create_publisher<OperationMode>("output/operation_mode", durable_qos);
+  gate_mode_pub_ = create_publisher<GateMode>("output/gate_mode", durable_qos);
+  engage_pub_ = create_publisher<EngageMsg>("output/engage", durable_qos);
+  pub_external_emergency_ = create_publisher<Emergency>("output/external_emergency", durable_qos);
+  operation_mode_pub_ = create_publisher<OperationModeState>("output/operation_mode", durable_qos);
+
+  is_filter_activated_pub_ =
+    create_publisher<IsFilterActivated>("~/is_filter_activated", durable_qos);
+  filter_activated_marker_pub_ =
+    create_publisher<MarkerArray>("~/is_filter_activated/marker", durable_qos);
+  filter_activated_marker_raw_pub_ =
+    create_publisher<MarkerArray>("~/is_filter_activated/marker_raw", durable_qos);
+  filter_activated_flag_pub_ =
+    create_publisher<BoolStamped>("~/is_filter_activated/flag", durable_qos);
 
   // Subscriber
-  emergency_state_sub_ = this->create_subscription<EmergencyState>(
-    "input/emergency_state", 1, std::bind(&VehicleCmdGate::onEmergencyState, this, _1));
-  external_emergency_stop_heartbeat_sub_ = this->create_subscription<Heartbeat>(
+  external_emergency_stop_heartbeat_sub_ = create_subscription<Heartbeat>(
     "input/external_emergency_stop_heartbeat", 1,
     std::bind(&VehicleCmdGate::onExternalEmergencyStopHeartbeat, this, _1));
-  gate_mode_sub_ = this->create_subscription<GateMode>(
+  gate_mode_sub_ = create_subscription<GateMode>(
     "input/gate_mode", 1, std::bind(&VehicleCmdGate::onGateMode, this, _1));
-  engage_sub_ = this->create_subscription<EngageMsg>(
+  engage_sub_ = create_subscription<EngageMsg>(
     "input/engage", 1, std::bind(&VehicleCmdGate::onEngage, this, _1));
-  steer_sub_ = this->create_subscription<SteeringReport>(
-    "input/steering", 1, std::bind(&VehicleCmdGate::onSteering, this, _1));
-  operation_mode_sub_ = this->create_subscription<tier4_system_msgs::msg::OperationMode>(
-    "input/operation_mode", 1, [this](const tier4_system_msgs::msg::OperationMode::SharedPtr msg) {
-      current_operation_mode_ = *msg;
+  kinematics_sub_ = create_subscription<Odometry>(
+    "/localization/kinematic_state", 1,
+    [this](Odometry::SharedPtr msg) { current_kinematics_ = *msg; });
+  acc_sub_ = create_subscription<AccelWithCovarianceStamped>(
+    "input/acceleration", 1, [this](AccelWithCovarianceStamped::SharedPtr msg) {
+      current_acceleration_ = msg->accel.accel.linear.x;
     });
+  steer_sub_ = create_subscription<SteeringReport>(
+    "input/steering", 1,
+    [this](SteeringReport::SharedPtr msg) { current_steer_ = msg->steering_tire_angle; });
+  operation_mode_sub_ = create_subscription<OperationModeState>(
+    "input/operation_mode", rclcpp::QoS(1).transient_local(),
+    [this](const OperationModeState::SharedPtr msg) { current_operation_mode_ = *msg; });
+  mrm_state_sub_ = create_subscription<MrmState>(
+    "input/mrm_state", 1, std::bind(&VehicleCmdGate::onMrmState, this, _1));
 
   // Subscriber for auto
-  auto_control_cmd_sub_ = this->create_subscription<AckermannControlCommand>(
+  auto_control_cmd_sub_ = create_subscription<AckermannControlCommand>(
     "input/auto/control_cmd", 1, std::bind(&VehicleCmdGate::onAutoCtrlCmd, this, _1));
 
-  auto_turn_indicator_cmd_sub_ = this->create_subscription<TurnIndicatorsCommand>(
+  auto_turn_indicator_cmd_sub_ = create_subscription<TurnIndicatorsCommand>(
     "input/auto/turn_indicators_cmd", 1,
-    std::bind(&VehicleCmdGate::onAutoTurnIndicatorsCmd, this, _1));
+    [this](TurnIndicatorsCommand::ConstSharedPtr msg) { auto_commands_.turn_indicator = *msg; });
 
-  auto_hazard_light_cmd_sub_ = this->create_subscription<HazardLightsCommand>(
-    "input/auto/hazard_lights_cmd", 1, std::bind(&VehicleCmdGate::onAutoHazardLightsCmd, this, _1));
+  auto_hazard_light_cmd_sub_ = create_subscription<HazardLightsCommand>(
+    "input/auto/hazard_lights_cmd", 1,
+    [this](HazardLightsCommand::ConstSharedPtr msg) { auto_commands_.hazard_light = *msg; });
 
-  auto_gear_cmd_sub_ = this->create_subscription<GearCommand>(
-    "input/auto/gear_cmd", 1, std::bind(&VehicleCmdGate::onAutoShiftCmd, this, _1));
+  auto_gear_cmd_sub_ = create_subscription<GearCommand>(
+    "input/auto/gear_cmd", 1,
+    [this](GearCommand::ConstSharedPtr msg) { auto_commands_.gear = *msg; });
 
   // Subscriber for external
-  remote_control_cmd_sub_ = this->create_subscription<AckermannControlCommand>(
+  remote_control_cmd_sub_ = create_subscription<AckermannControlCommand>(
     "input/external/control_cmd", 1, std::bind(&VehicleCmdGate::onRemoteCtrlCmd, this, _1));
 
-  remote_turn_indicator_cmd_sub_ = this->create_subscription<TurnIndicatorsCommand>(
+  remote_turn_indicator_cmd_sub_ = create_subscription<TurnIndicatorsCommand>(
     "input/external/turn_indicators_cmd", 1,
-    std::bind(&VehicleCmdGate::onRemoteTurnIndicatorsCmd, this, _1));
+    [this](TurnIndicatorsCommand::ConstSharedPtr msg) { remote_commands_.turn_indicator = *msg; });
 
-  remote_hazard_light_cmd_sub_ = this->create_subscription<HazardLightsCommand>(
+  remote_hazard_light_cmd_sub_ = create_subscription<HazardLightsCommand>(
     "input/external/hazard_lights_cmd", 1,
-    std::bind(&VehicleCmdGate::onRemoteHazardLightsCmd, this, _1));
+    [this](HazardLightsCommand::ConstSharedPtr msg) { remote_commands_.hazard_light = *msg; });
 
-  remote_gear_cmd_sub_ = this->create_subscription<GearCommand>(
-    "input/external/gear_cmd", 1, std::bind(&VehicleCmdGate::onRemoteShiftCmd, this, _1));
+  remote_gear_cmd_sub_ = create_subscription<GearCommand>(
+    "input/external/gear_cmd", 1,
+    [this](GearCommand::ConstSharedPtr msg) { remote_commands_.gear = *msg; });
 
   // Subscriber for emergency
-  emergency_control_cmd_sub_ = this->create_subscription<AckermannControlCommand>(
+  emergency_control_cmd_sub_ = create_subscription<AckermannControlCommand>(
     "input/emergency/control_cmd", 1, std::bind(&VehicleCmdGate::onEmergencyCtrlCmd, this, _1));
 
-  emergency_hazard_light_cmd_sub_ = this->create_subscription<HazardLightsCommand>(
+  emergency_hazard_light_cmd_sub_ = create_subscription<HazardLightsCommand>(
     "input/emergency/hazard_lights_cmd", 1,
-    std::bind(&VehicleCmdGate::onEmergencyHazardLightsCmd, this, _1));
+    [this](HazardLightsCommand::ConstSharedPtr msg) { emergency_commands_.hazard_light = *msg; });
 
-  emergency_gear_cmd_sub_ = this->create_subscription<GearCommand>(
-    "input/emergency/gear_cmd", 1, std::bind(&VehicleCmdGate::onEmergencyShiftCmd, this, _1));
+  emergency_gear_cmd_sub_ = create_subscription<GearCommand>(
+    "input/emergency/gear_cmd", 1,
+    [this](GearCommand::ConstSharedPtr msg) { emergency_commands_.gear = *msg; });
 
   // Parameter
-  update_period_ = 1.0 / declare_parameter("update_rate", 10.0);
-  use_emergency_handling_ = declare_parameter("use_emergency_handling", false);
-  use_external_emergency_stop_ = declare_parameter("use_external_emergency_stop", false);
+  use_emergency_handling_ = declare_parameter<bool>("use_emergency_handling");
+  check_external_emergency_heartbeat_ =
+    declare_parameter<bool>("check_external_emergency_heartbeat");
   system_emergency_heartbeat_timeout_ =
-    declare_parameter("system_emergency_heartbeat_timeout", 0.5);
+    declare_parameter<double>("system_emergency_heartbeat_timeout");
   external_emergency_stop_heartbeat_timeout_ =
-    declare_parameter("external_emergency_stop_heartbeat_timeout", 0.5);
-  stop_hold_acceleration_ = declare_parameter("stop_hold_acceleration", -1.5);
-  emergency_acceleration_ = declare_parameter("emergency_acceleration", -2.4);
+    declare_parameter<double>("external_emergency_stop_heartbeat_timeout");
+  stop_hold_acceleration_ = declare_parameter<double>("stop_hold_acceleration");
+  emergency_acceleration_ = declare_parameter<double>("emergency_acceleration");
+  moderate_stop_service_acceleration_ =
+    declare_parameter<double>("moderate_stop_service_acceleration");
+  stop_check_duration_ = declare_parameter<double>("stop_check_duration");
+  enable_cmd_limit_filter_ = declare_parameter<bool>("enable_cmd_limit_filter");
+  filter_activated_count_threshold_ = declare_parameter<int>("filter_activated_count_threshold");
+  filter_activated_velocity_threshold_ =
+    declare_parameter<double>("filter_activated_velocity_threshold");
 
   // Vehicle Parameter
   const auto vehicle_info = vehicle_info_util::VehicleInfoUtil(*this).getVehicleInfo();
   {
     VehicleCmdFilterParam p;
     p.wheel_base = vehicle_info.wheel_base_m;
-    p.vel_lim = declare_parameter("nominal.vel_lim", 25.0);
-    p.lon_acc_lim = declare_parameter("nominal.lon_acc_lim", 5.0);
-    p.lon_jerk_lim = declare_parameter("nominal.lon_jerk_lim", 5.0);
-    p.lat_acc_lim = declare_parameter("nominal.lat_acc_lim", 5.0);
-    p.lat_jerk_lim = declare_parameter("nominal.lat_jerk_lim", 5.0);
-    p.actual_steer_diff_lim = declare_parameter("nominal.actual_steer_diff_lim", 1.0);
+    p.vel_lim = declare_parameter<double>("nominal.vel_lim");
+    p.reference_speed_points =
+      declare_parameter<std::vector<double>>("nominal.reference_speed_points");
+    p.steer_lim = declare_parameter<std::vector<double>>("nominal.steer_lim");
+    p.steer_rate_lim = declare_parameter<std::vector<double>>("nominal.steer_rate_lim");
+    p.lon_acc_lim = declare_parameter<std::vector<double>>("nominal.lon_acc_lim");
+    p.lon_jerk_lim = declare_parameter<std::vector<double>>("nominal.lon_jerk_lim");
+    p.lat_acc_lim = declare_parameter<std::vector<double>>("nominal.lat_acc_lim");
+    p.lat_jerk_lim = declare_parameter<std::vector<double>>("nominal.lat_jerk_lim");
+    p.actual_steer_diff_lim =
+      declare_parameter<std::vector<double>>("nominal.actual_steer_diff_lim");
     filter_.setParam(p);
   }
 
   {
     VehicleCmdFilterParam p;
     p.wheel_base = vehicle_info.wheel_base_m;
-    p.vel_lim = declare_parameter("on_transition.vel_lim", 25.0);
-    p.lon_acc_lim = declare_parameter("on_transition.lon_acc_lim", 0.5);
-    p.lon_jerk_lim = declare_parameter("on_transition.lon_jerk_lim", 0.25);
-    p.lat_acc_lim = declare_parameter("on_transition.lat_acc_lim", 0.5);
-    p.lat_jerk_lim = declare_parameter("on_transition.lat_jerk_lim", 0.25);
-    p.actual_steer_diff_lim = declare_parameter("on_transition.actual_steer_diff_lim", 0.05);
+    p.vel_lim = declare_parameter<double>("on_transition.vel_lim");
+    p.reference_speed_points =
+      declare_parameter<std::vector<double>>("on_transition.reference_speed_points");
+    p.steer_lim = declare_parameter<std::vector<double>>("on_transition.steer_lim");
+    p.steer_rate_lim = declare_parameter<std::vector<double>>("on_transition.steer_rate_lim");
+    p.lon_acc_lim = declare_parameter<std::vector<double>>("on_transition.lon_acc_lim");
+    p.lon_jerk_lim = declare_parameter<std::vector<double>>("on_transition.lon_jerk_lim");
+    p.lat_acc_lim = declare_parameter<std::vector<double>>("on_transition.lat_acc_lim");
+    p.lat_jerk_lim = declare_parameter<std::vector<double>>("on_transition.lat_jerk_lim");
+    p.actual_steer_diff_lim =
+      declare_parameter<std::vector<double>>("on_transition.actual_steer_diff_lim");
     filter_on_transition_.setParam(p);
   }
 
   // Set default value
   current_gate_mode_.data = GateMode::AUTO;
+  current_operation_mode_.mode = OperationModeState::STOP;
 
   // Service
-  srv_engage_ = create_service<tier4_external_api_msgs::srv::Engage>(
+  srv_engage_ = create_service<EngageSrv>(
     "~/service/engage", std::bind(&VehicleCmdGate::onEngageService, this, _1, _2));
-  srv_external_emergency_ = create_service<tier4_external_api_msgs::srv::SetEmergency>(
+  srv_external_emergency_ = create_service<SetEmergency>(
     "~/service/external_emergency",
     std::bind(&VehicleCmdGate::onExternalEmergencyStopService, this, _1, _2, _3));
-  srv_external_emergency_stop_ = this->create_service<std_srvs::srv::Trigger>(
+  srv_external_emergency_stop_ = create_service<Trigger>(
     "~/service/external_emergency_stop",
     std::bind(&VehicleCmdGate::onSetExternalEmergencyStopService, this, _1, _2, _3));
-  srv_clear_external_emergency_stop_ = this->create_service<std_srvs::srv::Trigger>(
+  srv_clear_external_emergency_stop_ = create_service<Trigger>(
     "~/service/clear_external_emergency_stop",
     std::bind(&VehicleCmdGate::onClearExternalEmergencyStopService, this, _1, _2, _3));
 
@@ -186,15 +229,19 @@ VehicleCmdGate::VehicleCmdGate(const rclcpp::NodeOptions & node_options)
   updater_.add("emergency_stop_operation", this, &VehicleCmdGate::checkExternalEmergencyStop);
 
   // Pause interface
-  pause_ = std::make_unique<PauseInterface>(this);
+  adapi_pause_ = std::make_unique<AdapiPauseInterface>(this);
+  moderate_stop_interface_ = std::make_unique<ModerateStopInterface>(this);
 
   // Timer
+  const auto update_period = 1.0 / declare_parameter<double>("update_rate");
   const auto period_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    std::chrono::duration<double>(update_period_));
+    std::chrono::duration<double>(update_period));
   timer_ =
     rclcpp::create_timer(this, get_clock(), period_ns, std::bind(&VehicleCmdGate::onTimer, this));
   timer_pub_status_ = rclcpp::create_timer(
     this, get_clock(), period_ns, std::bind(&VehicleCmdGate::publishStatus, this));
+
+  logger_configure_ = std::make_unique<tier4_autoware_utils::LoggerLevelConfigure>(this);
 }
 
 bool VehicleCmdGate::isHeartbeatTimeout(
@@ -223,6 +270,13 @@ bool VehicleCmdGate::isDataReady()
     }
   }
 
+  if (check_external_emergency_heartbeat_) {
+    if (!external_emergency_stop_heartbeat_received_time_) {
+      RCLCPP_WARN(get_logger(), "external_emergency_stop_heartbeat_received_time_ is false");
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -236,18 +290,6 @@ void VehicleCmdGate::onAutoCtrlCmd(AckermannControlCommand::ConstSharedPtr msg)
   }
 }
 
-void VehicleCmdGate::onAutoTurnIndicatorsCmd(TurnIndicatorsCommand::ConstSharedPtr msg)
-{
-  auto_commands_.turn_indicator = *msg;
-}
-
-void VehicleCmdGate::onAutoHazardLightsCmd(HazardLightsCommand::ConstSharedPtr msg)
-{
-  auto_commands_.hazard_light = *msg;
-}
-
-void VehicleCmdGate::onAutoShiftCmd(GearCommand::ConstSharedPtr msg) { auto_commands_.gear = *msg; }
-
 // for remote
 void VehicleCmdGate::onRemoteCtrlCmd(AckermannControlCommand::ConstSharedPtr msg)
 {
@@ -258,21 +300,6 @@ void VehicleCmdGate::onRemoteCtrlCmd(AckermannControlCommand::ConstSharedPtr msg
   }
 }
 
-void VehicleCmdGate::onRemoteTurnIndicatorsCmd(TurnIndicatorsCommand::ConstSharedPtr msg)
-{
-  remote_commands_.turn_indicator = *msg;
-}
-
-void VehicleCmdGate::onRemoteHazardLightsCmd(HazardLightsCommand::ConstSharedPtr msg)
-{
-  remote_commands_.hazard_light = *msg;
-}
-
-void VehicleCmdGate::onRemoteShiftCmd(GearCommand::ConstSharedPtr msg)
-{
-  remote_commands_.gear = *msg;
-}
-
 // for emergency
 void VehicleCmdGate::onEmergencyCtrlCmd(AckermannControlCommand::ConstSharedPtr msg)
 {
@@ -281,14 +308,6 @@ void VehicleCmdGate::onEmergencyCtrlCmd(AckermannControlCommand::ConstSharedPtr 
   if (use_emergency_handling_ && is_system_emergency_) {
     publishControlCommands(emergency_commands_);
   }
-}
-void VehicleCmdGate::onEmergencyHazardLightsCmd(HazardLightsCommand::ConstSharedPtr msg)
-{
-  emergency_commands_.hazard_light = *msg;
-}
-void VehicleCmdGate::onEmergencyShiftCmd(GearCommand::ConstSharedPtr msg)
-{
-  emergency_commands_.gear = *msg;
 }
 
 void VehicleCmdGate::onTimer()
@@ -314,7 +333,7 @@ void VehicleCmdGate::onTimer()
   }
 
   // Check external emergency stop heartbeat
-  if (use_external_emergency_stop_) {
+  if (check_external_emergency_heartbeat_) {
     is_external_emergency_stop_heartbeat_timeout_ = isHeartbeatTimeout(
       external_emergency_stop_heartbeat_received_time_, external_emergency_stop_heartbeat_timeout_);
 
@@ -396,6 +415,11 @@ void VehicleCmdGate::publishControlCommands(const Commands & commands)
     filtered_commands.gear = commands.gear;  // tmp
   }
 
+  if (moderate_stop_interface_->is_stop_requested()) {  // if stop requested, stop the vehicle
+    filtered_commands.control.longitudinal.speed = 0.0;
+    filtered_commands.control.longitudinal.acceleration = moderate_stop_service_acceleration_;
+  }
+
   // Check emergency
   if (use_emergency_handling_ && is_system_emergency_) {
     RCLCPP_WARN_THROTTLE(
@@ -406,18 +430,24 @@ void VehicleCmdGate::publishControlCommands(const Commands & commands)
 
   // Check engage
   if (!is_engaged_) {
-    filtered_commands.control = createStopControlCmd();
+    filtered_commands.control.longitudinal = createLongitudinalStopControlCmd();
   }
 
-  // Check pause
-  pause_->update(filtered_commands.control);
-  if (pause_->is_paused()) {
-    filtered_commands.control = createStopControlCmd();
+  // Check pause. Place this check after all other checks as it needs the final output.
+  adapi_pause_->update(filtered_commands.control);
+  if (adapi_pause_->is_paused()) {
+    if (is_engaged_) {
+      filtered_commands.control.longitudinal = createLongitudinalStopControlCmd();
+    } else {
+      filtered_commands.control = createStopControlCmd();
+    }
   }
 
-  // Apply limit filtering
-  filtered_commands.control = filterControlCommand(filtered_commands.control);
-
+  // Check if command filtering option is enable
+  if (enable_cmd_limit_filter_) {
+    // Apply limit filtering
+    filtered_commands.control = filterControlCommand(filtered_commands.control);
+  }
   // tmp: Publish vehicle emergency status
   VehicleEmergencyStamped vehicle_cmd_emergency;
   vehicle_cmd_emergency.emergency = (use_emergency_handling_ && is_system_emergency_);
@@ -426,6 +456,8 @@ void VehicleCmdGate::publishControlCommands(const Commands & commands)
   // Publish commands
   vehicle_cmd_emergency_pub_->publish(vehicle_cmd_emergency);
   control_cmd_pub_->publish(filtered_commands.control);
+  adapi_pause_->publish();
+  moderate_stop_interface_->publish();
 
   // Save ControlCmd to steering angle when disengaged
   prev_control_cmd_ = filtered_commands.control;
@@ -441,7 +473,7 @@ void VehicleCmdGate::publishEmergencyStopControlCommands()
   control_cmd = createEmergencyStopControlCmd();
 
   // Update control command
-  pause_->update(control_cmd);
+  adapi_pause_->update(control_cmd);
 
   // gear
   GearCommand gear;
@@ -489,28 +521,69 @@ void VehicleCmdGate::publishStatus()
   engage_pub_->publish(autoware_engage);
   pub_external_emergency_->publish(external_emergency);
   operation_mode_pub_->publish(current_operation_mode_);
-  pause_->publish();
+  adapi_pause_->publish();
+  moderate_stop_interface_->publish();
 }
 
 AckermannControlCommand VehicleCmdGate::filterControlCommand(const AckermannControlCommand & in)
 {
   AckermannControlCommand out = in;
   const double dt = getDt();
+  const auto mode = current_operation_mode_;
+  const auto current_status_cmd = getActualStatusAsCommand();
+  const auto ego_is_stopped = vehicle_stop_checker_->isVehicleStopped(stop_check_duration_);
+  const auto input_cmd_is_stopping = in.longitudinal.acceleration < 0.0;
 
-  const auto mode = current_operation_mode_.mode;
+  filter_.setCurrentSpeed(current_kinematics_.twist.twist.linear.x);
+  filter_on_transition_.setCurrentSpeed(current_kinematics_.twist.twist.linear.x);
+
+  IsFilterActivated is_filter_activated;
 
   // Apply transition_filter when transiting from MANUAL to AUTO.
-  if (mode == OperationMode::TRANSITION_TO_AUTO) {
-    filter_on_transition_.filterAll(dt, current_steer_, out);
+  if (mode.is_in_transition) {
+    filter_on_transition_.filterAll(dt, current_steer_, out, is_filter_activated);
   } else {
-    filter_.filterAll(dt, current_steer_, out);
+    // When ego is stopped and the input command is not stopping,
+    // use the higher of actual vehicle longitudinal state
+    // and previous longitudinal command for the filtering
+    // this is to prevent the jerk limits being applied and causing
+    // a delay when restarting the vehicle.
+
+    if (ego_is_stopped && !input_cmd_is_stopping) {
+      auto prev_cmd = filter_.getPrevCmd();
+      prev_cmd.longitudinal.acceleration =
+        std::max(prev_cmd.longitudinal.acceleration, current_status_cmd.longitudinal.acceleration);
+      // consider reverse driving
+      prev_cmd.longitudinal.speed =
+        std::fabs(prev_cmd.longitudinal.speed) > std::fabs(current_status_cmd.longitudinal.speed)
+          ? prev_cmd.longitudinal.speed
+          : current_status_cmd.longitudinal.speed;
+      filter_.setPrevCmd(prev_cmd);
+    }
+    filter_.filterAll(dt, current_steer_, out, is_filter_activated);
   }
 
-  // set prev value for both to keep consistency over switching
-  // TODO(Horibe): prev value should be actual steer, vel, acc when Manual mode to keep
-  // consistency when switching from Manual to Auto.
-  filter_.setPrevCmd(out);
-  filter_on_transition_.setPrevCmd(out);
+  // set prev value for both to keep consistency over switching:
+  // Actual steer, vel, acc should be considered in manual mode to prevent sudden motion when
+  // switching from manual to autonomous
+  auto prev_values = mode.is_autoware_control_enabled ? out : current_status_cmd;
+
+  if (ego_is_stopped) {
+    prev_values.longitudinal = out.longitudinal;
+  }
+
+  // TODO(Horibe): To prevent sudden acceleration/deceleration when switching from manual to
+  // autonomous, the filter should be applied for actual speed and acceleration during manual
+  // driving. However, this means that the output command from Gate will always be close to the
+  // driving state during manual driving. Here, let autoware publish the stop command when the ego
+  // is stopped to intend the autoware is trying to keep stopping.
+
+  filter_.setPrevCmd(prev_values);
+  filter_on_transition_.setPrevCmd(prev_values);
+
+  is_filter_activated.stamp = now();
+  is_filter_activated_pub_->publish(is_filter_activated);
+  publishMarkers(is_filter_activated);
 
   return out;
 }
@@ -530,6 +603,17 @@ AckermannControlCommand VehicleCmdGate::createStopControlCmd() const
   return cmd;
 }
 
+LongitudinalCommand VehicleCmdGate::createLongitudinalStopControlCmd() const
+{
+  LongitudinalCommand cmd;
+  const auto t = this->now();
+  cmd.stamp = t;
+  cmd.speed = 0.0;
+  cmd.acceleration = stop_hold_acceleration_;
+
+  return cmd;
+}
+
 AckermannControlCommand VehicleCmdGate::createEmergencyStopControlCmd() const
 {
   AckermannControlCommand cmd;
@@ -543,14 +627,6 @@ AckermannControlCommand VehicleCmdGate::createEmergencyStopControlCmd() const
   cmd.longitudinal.acceleration = emergency_acceleration_;
 
   return cmd;
-}
-
-void VehicleCmdGate::onEmergencyState(EmergencyState::ConstSharedPtr msg)
-{
-  is_system_emergency_ = (msg->state == EmergencyState::MRM_OPERATING) ||
-                         (msg->state == EmergencyState::MRM_SUCCEEDED) ||
-                         (msg->state == EmergencyState::MRM_FAILED);
-  emergency_state_heartbeat_received_time_ = std::make_shared<rclcpp::Time>(this->now());
 }
 
 void VehicleCmdGate::onExternalEmergencyStopHeartbeat(
@@ -571,19 +647,25 @@ void VehicleCmdGate::onGateMode(GateMode::ConstSharedPtr msg)
   }
 }
 
-void VehicleCmdGate::onEngage(EngageMsg::ConstSharedPtr msg) { is_engaged_ = msg->engage; }
+void VehicleCmdGate::onEngage(EngageMsg::ConstSharedPtr msg)
+{
+  is_engaged_ = msg->engage;
+}
 
 void VehicleCmdGate::onEngageService(
-  const tier4_external_api_msgs::srv::Engage::Request::SharedPtr request,
-  const tier4_external_api_msgs::srv::Engage::Response::SharedPtr response)
+  const EngageSrv::Request::SharedPtr request, const EngageSrv::Response::SharedPtr response)
 {
   is_engaged_ = request->engage;
   response->status = tier4_api_utils::response_success();
 }
 
-void VehicleCmdGate::onSteering(SteeringReport::ConstSharedPtr msg)
+void VehicleCmdGate::onMrmState(MrmState::ConstSharedPtr msg)
 {
-  current_steer_ = msg->steering_tire_angle;
+  is_system_emergency_ =
+    (msg->state == MrmState::MRM_OPERATING || msg->state == MrmState::MRM_SUCCEEDED ||
+     msg->state == MrmState::MRM_FAILED) &&
+    (msg->behavior == MrmState::EMERGENCY_STOP);
+  emergency_state_heartbeat_received_time_ = std::make_shared<rclcpp::Time>(this->now());
 }
 
 double VehicleCmdGate::getDt()
@@ -600,13 +682,23 @@ double VehicleCmdGate::getDt()
   return dt;
 }
 
+AckermannControlCommand VehicleCmdGate::getActualStatusAsCommand()
+{
+  AckermannControlCommand status;
+  status.stamp = status.lateral.stamp = status.longitudinal.stamp = this->now();
+  status.lateral.steering_tire_angle = current_steer_;
+  status.lateral.steering_tire_rotation_rate = 0.0;
+  status.longitudinal.speed = current_kinematics_.twist.twist.linear.x;
+  status.longitudinal.acceleration = current_acceleration_;
+  return status;
+}
+
 void VehicleCmdGate::onExternalEmergencyStopService(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<tier4_external_api_msgs::srv::SetEmergency::Request> request,
-  const std::shared_ptr<tier4_external_api_msgs::srv::SetEmergency::Response> response)
+  const SetEmergency::Request::SharedPtr request, const SetEmergency::Response::SharedPtr response)
 {
-  auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-  auto res = std::make_shared<std_srvs::srv::Trigger::Response>();
+  auto req = std::make_shared<Trigger::Request>();
+  auto res = std::make_shared<Trigger::Response>();
   if (request->emergency) {
     onSetExternalEmergencyStopService(request_header, req, res);
   } else {
@@ -622,8 +714,7 @@ void VehicleCmdGate::onExternalEmergencyStopService(
 
 bool VehicleCmdGate::onSetExternalEmergencyStopService(
   [[maybe_unused]] const std::shared_ptr<rmw_request_id_t> req_header,
-  [[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-  const std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+  [[maybe_unused]] const Trigger::Request::SharedPtr req, const Trigger::Response::SharedPtr res)
 {
   is_external_emergency_stop_ = true;
   res->success = true;
@@ -634,8 +725,7 @@ bool VehicleCmdGate::onSetExternalEmergencyStopService(
 
 bool VehicleCmdGate::onClearExternalEmergencyStopService(
   [[maybe_unused]] const std::shared_ptr<rmw_request_id_t> req_header,
-  [[maybe_unused]] const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-  const std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+  [[maybe_unused]] const Trigger::Request::SharedPtr req, const Trigger::Response::SharedPtr res)
 {
   if (is_external_emergency_stop_) {
     if (!is_external_emergency_stop_heartbeat_timeout_) {
@@ -672,6 +762,75 @@ void VehicleCmdGate::checkExternalEmergencyStop(diagnostic_updater::DiagnosticSt
   stat.summary(status.level, status.message);
 }
 
+MarkerArray VehicleCmdGate::createMarkerArray(const IsFilterActivated & filter_activated)
+{
+  MarkerArray msg;
+
+  if (!filter_activated.is_activated) {
+    return msg;
+  }
+
+  /* add string marker */
+  bool first_msg = true;
+  std::string reason = "filter activated on";
+
+  if (filter_activated.is_activated_on_acceleration) {
+    reason += " lon_acc";
+    first_msg = false;
+  }
+  if (filter_activated.is_activated_on_jerk) {
+    reason += first_msg ? " jerk" : ", jerk";
+    first_msg = false;
+  }
+  if (filter_activated.is_activated_on_speed) {
+    reason += first_msg ? " speed" : ", speed";
+    first_msg = false;
+  }
+  if (filter_activated.is_activated_on_steering) {
+    reason += first_msg ? " steer" : ", steer";
+    first_msg = false;
+  }
+  if (filter_activated.is_activated_on_steering_rate) {
+    reason += first_msg ? " steer_rate" : ", steer_rate";
+    first_msg = false;
+  }
+
+  msg.markers.emplace_back(createStringMarker(
+    "base_link", "msg", 0, visualization_msgs::msg::Marker::TEXT_VIEW_FACING,
+    createMarkerPosition(0.0, 0.0, 1.0), createMarkerScale(0.0, 0.0, 1.0),
+    createMarkerColor(1.0, 0.0, 0.0, 1.0), reason));
+
+  /* add sphere marker */
+  msg.markers.emplace_back(createMarker(
+    "base_link", "sphere", 0, visualization_msgs::msg::Marker::SPHERE,
+    createMarkerPosition(0.0, 0.0, 0.0), createMarkerScale(3.0, 3.0, 3.0),
+    createMarkerColor(1.0, 0.0, 0.0, 0.3)));
+
+  return msg;
+}
+
+void VehicleCmdGate::publishMarkers(const IsFilterActivated & filter_activated)
+{
+  BoolStamped filter_activated_flag;
+  if (filter_activated.is_activated) {
+    filter_activated_count_++;
+  } else {
+    filter_activated_count_ = 0;
+  }
+  if (
+    filter_activated_count_ >= filter_activated_count_threshold_ &&
+    std::fabs(current_kinematics_.twist.twist.linear.x) >= filter_activated_velocity_threshold_ &&
+    current_operation_mode_.mode == OperationModeState::AUTONOMOUS) {
+    filter_activated_marker_pub_->publish(createMarkerArray(filter_activated));
+    filter_activated_flag.data = true;
+  } else {
+    filter_activated_flag.data = false;
+  }
+
+  filter_activated_flag.stamp = now();
+  filter_activated_flag_pub_->publish(filter_activated_flag);
+  filter_activated_marker_raw_pub_->publish(createMarkerArray(filter_activated));
+}
 }  // namespace vehicle_cmd_gate
 
 #include <rclcpp_components/register_node_macro.hpp>

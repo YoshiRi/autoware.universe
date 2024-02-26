@@ -26,12 +26,14 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2/utils.h>
 
+#include <optional>
 #include <vector>
 
 namespace motion_planning
 {
 using autoware_auto_planning_msgs::msg::TrajectoryPoint;
 using TrajectoryPoints = std::vector<TrajectoryPoint>;
+using autoware_auto_perception_msgs::msg::PredictedObject;
 class AdaptiveCruiseController
 {
 public:
@@ -46,6 +48,14 @@ public:
     const autoware_auto_perception_msgs::msg::PredictedObjects::ConstSharedPtr object_ptr,
     const nav_msgs::msg::Odometry::ConstSharedPtr current_velocity_ptr, bool * need_to_stop,
     TrajectoryPoints * output_trajectory, const std_msgs::msg::Header trajectory_header);
+
+  void insertAdaptiveCruiseVelocity(
+    const TrajectoryPoints & trajectory, const int nearest_collision_point_idx,
+    const geometry_msgs::msg::Pose self_pose, const pcl::PointXYZ & nearest_collision_point,
+    const rclcpp::Time nearest_collision_point_time,
+    const nav_msgs::msg::Odometry::ConstSharedPtr current_velocity_ptr, bool * need_to_stop,
+    TrajectoryPoints * output_trajectory, const std_msgs::msg::Header trajectory_header,
+    const PredictedObject & target_object);
 
 private:
   rclcpp::Publisher<tier4_debug_msgs::msg::Float32MultiArrayStamped>::SharedPtr pub_debug_;
@@ -181,12 +191,14 @@ private:
     const rclcpp::Time & nearest_collision_point_time, double * distance,
     const std_msgs::msg::Header & trajectory_header);
   double calcTrajYaw(const TrajectoryPoints & trajectory, const int collision_point_idx);
-  bool estimatePointVelocityFromObject(
+  std::optional<double> estimatePointVelocityFromObject(
     const autoware_auto_perception_msgs::msg::PredictedObjects::ConstSharedPtr object_ptr,
-    const double traj_yaw, const pcl::PointXYZ & nearest_collision_point, double * velocity);
-  bool estimatePointVelocityFromPcl(
+    const double traj_yaw, const pcl::PointXYZ & nearest_collision_point);
+  std::optional<double> estimatePointVelocityFromPcl(
     const double traj_yaw, const pcl::PointXYZ & nearest_collision_point,
-    const rclcpp::Time & nearest_collision_point_time, double * velocity);
+    const rclcpp::Time & nearest_collision_point_time);
+  void calculateProjectedVelocityFromObject(
+    const PredictedObject & object, const double traj_yaw, double * velocity);
   double estimateRoughPointVelocity(double current_vel);
   bool isObstacleVelocityHigh(const double obj_vel);
   double calcUpperVelocity(const double dist_to_col, const double obj_vel, const double self_vel);

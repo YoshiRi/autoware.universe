@@ -15,28 +15,50 @@
 #ifndef MOTION_UTILS__RESAMPLE__RESAMPLE_HPP_
 #define MOTION_UTILS__RESAMPLE__RESAMPLE_HPP_
 
-#include "interpolation/interpolation_utils.hpp"
-#include "interpolation/linear_interpolation.hpp"
-#include "interpolation/spline_interpolation.hpp"
-#include "interpolation/zero_order_hold.hpp"
-#include "motion_utils/trajectory/trajectory.hpp"
-#include "tier4_autoware_utils/geometry/geometry.hpp"
-#include "tier4_autoware_utils/geometry/pose_deviation.hpp"
-#include "tier4_autoware_utils/math/constants.hpp"
+#include "autoware_auto_planning_msgs/msg/detail/path__struct.hpp"
+#include "autoware_auto_planning_msgs/msg/detail/path_with_lane_id__struct.hpp"
+#include "autoware_auto_planning_msgs/msg/detail/trajectory__struct.hpp"
 
-#include <rclcpp/rclcpp.hpp>
-
-#include "autoware_auto_planning_msgs/msg/path.hpp"
-#include "autoware_auto_planning_msgs/msg/path_with_lane_id.hpp"
-#include "autoware_auto_planning_msgs/msg/trajectory.hpp"
-
-#include <algorithm>
-#include <limits>
-#include <stdexcept>
 #include <vector>
 
 namespace motion_utils
 {
+/**
+ * @brief A resampling function for a path(points). Note that in a default setting, position xy are
+ *        resampled by spline interpolation, position z are resampled by linear interpolation, and
+ *        orientation of the resampled path are calculated by a forward difference method
+ *        based on the interpolated position x and y.
+ * @param input_path input path(point) to resample
+ * @param resampled_arclength arclength that contains length of each resampling points from initial
+ *        point
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
+ *        y. Otherwise, it uses spline interpolation
+ * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
+ *        Otherwise, it uses spline interpolation
+ * @return resampled path(poses)
+ */
+std::vector<geometry_msgs::msg::Point> resamplePointVector(
+  const std::vector<geometry_msgs::msg::Point> & points,
+  const std::vector<double> & resampled_arclength, const bool use_akima_spline_for_xy = false,
+  const bool use_lerp_for_z = true);
+
+/**
+ * @brief A resampling function for a path(position). Note that in a default setting, position xy
+ * are resampled by spline interpolation, position z are resampled by linear interpolation, and
+ *        orientation of the resampled path are calculated by a forward difference method
+ *        based on the interpolated position x and y.
+ * @param input_path input path(position) to resample
+ * @param resample_interval resampling interval
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
+ *        y. Otherwise, it uses spline interpolation
+ * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
+ *        Otherwise, it uses spline interpolation
+ * @return resampled path(poses)
+ */
+std::vector<geometry_msgs::msg::Point> resamplePointVector(
+  const std::vector<geometry_msgs::msg::Point> & points, const double resample_interval,
+  const bool use_akima_spline_for_xy = false, const bool use_lerp_for_z = true);
+
 /**
  * @brief A resampling function for a path(poses). Note that in a default setting, position xy are
  *        resampled by spline interpolation, position z are resampled by linear interpolation, and
@@ -45,7 +67,7 @@ namespace motion_utils
  * @param input_path input path(poses) to resample
  * @param resampled_arclength arclength that contains length of each resampling points from initial
  *        point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -53,8 +75,25 @@ namespace motion_utils
  */
 std::vector<geometry_msgs::msg::Pose> resamplePoseVector(
   const std::vector<geometry_msgs::msg::Pose> & points,
-  const std::vector<double> & resampled_arclength, const bool use_lerp_for_xy = false,
+  const std::vector<double> & resampled_arclength, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true);
+
+/**
+ * @brief A resampling function for a path(poses). Note that in a default setting, position xy are
+ *        resampled by spline interpolation, position z are resampled by linear interpolation, and
+ *        orientation of the resampled path are calculated by a forward difference method
+ *        based on the interpolated position x and y.
+ * @param input_path input path(poses) to resample
+ * @param resample_interval resampling interval
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
+ *        y. Otherwise, it uses spline interpolation
+ * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
+ *        Otherwise, it uses spline interpolation
+ * @return resampled path(poses)
+ */
+std::vector<geometry_msgs::msg::Pose> resamplePoseVector(
+  const std::vector<geometry_msgs::msg::Pose> & points, const double resample_interval,
+  const bool use_akima_spline_for_xy = false, const bool use_lerp_for_z = true);
 
 /**
  * @brief A resampling function for a path with lane id. Note that in a default setting, position xy
@@ -66,7 +105,7 @@ std::vector<geometry_msgs::msg::Pose> resamplePoseVector(
  * @param input_path input path to resample
  * @param resampled_arclength arclength that contains length of each resampling points from initial
  *        point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -76,7 +115,7 @@ std::vector<geometry_msgs::msg::Pose> resamplePoseVector(
  */
 autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
   const autoware_auto_planning_msgs::msg::PathWithLaneId & input_path,
-  const std::vector<double> & resampled_arclength, const bool use_lerp_for_xy = false,
+  const std::vector<double> & resampled_arclength, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true, const bool use_zero_order_hold_for_v = true);
 
 /**
@@ -88,7 +127,7 @@ autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
  *        and is_final are also interpolated by zero order hold
  * @param input_path input path to resample
  * @param resampled_interval resampling interval point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -99,7 +138,7 @@ autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
  */
 autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
   const autoware_auto_planning_msgs::msg::PathWithLaneId & input_path,
-  const double resample_interval, const bool use_lerp_for_xy = false,
+  const double resample_interval, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true, const bool use_zero_order_hold_for_v = true,
   const bool resample_input_path_stop_point = true);
 
@@ -112,7 +151,7 @@ autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
  * @param input_path input path to resample
  * @param resampled_arclength arclength that contains length of each resampling points from initial
  *        point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -122,7 +161,7 @@ autoware_auto_planning_msgs::msg::PathWithLaneId resamplePath(
  */
 autoware_auto_planning_msgs::msg::Path resamplePath(
   const autoware_auto_planning_msgs::msg::Path & input_path,
-  const std::vector<double> & resampled_arclength, const bool use_lerp_for_xy = false,
+  const std::vector<double> & resampled_arclength, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true, const bool use_zero_order_hold_for_v = true);
 
 /**
@@ -133,7 +172,7 @@ autoware_auto_planning_msgs::msg::Path resamplePath(
  *        forward difference method based on the interpolated position x and y.
  * @param input_path input path to resample
  * @param resampled_interval resampling interval point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -144,8 +183,9 @@ autoware_auto_planning_msgs::msg::Path resamplePath(
  */
 autoware_auto_planning_msgs::msg::Path resamplePath(
   const autoware_auto_planning_msgs::msg::Path & input_path, const double resample_interval,
-  const bool use_lerp_for_xy = false, const bool use_lerp_for_z = true,
-  const bool use_zero_order_hold_for_v = true, const bool resample_input_path_stop_point = true);
+  const bool use_akima_spline_for_xy = false, const bool use_lerp_for_z = true,
+  const bool use_zero_order_hold_for_twist = true,
+  const bool resample_input_path_stop_point = true);
 
 /**
  * @brief A resampling function for a trajectory. Note that in a default setting, position xy are
@@ -157,7 +197,7 @@ autoware_auto_planning_msgs::msg::Path resamplePath(
  * @param input_trajectory input trajectory to resample
  * @param resampled_arclength arclength that contains length of each resampling points from initial
  *        point
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -167,7 +207,7 @@ autoware_auto_planning_msgs::msg::Path resamplePath(
  */
 autoware_auto_planning_msgs::msg::Trajectory resampleTrajectory(
   const autoware_auto_planning_msgs::msg::Trajectory & input_trajectory,
-  const std::vector<double> & resampled_arclength, const bool use_lerp_for_xy = false,
+  const std::vector<double> & resampled_arclength, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true, const bool use_zero_order_hold_for_twist = true);
 
 /**
@@ -180,7 +220,7 @@ autoware_auto_planning_msgs::msg::Trajectory resampleTrajectory(
  *        method based on the interpolated position x and y.
  * @param input_trajectory input trajectory to resample
  * @param resampled_interval resampling interval
- * @param use_lerp_for_xy If true, it uses linear interpolation to resample position x and
+ * @param use_akima_spline_for_xy If true, it uses linear interpolation to resample position x and
  *        y. Otherwise, it uses spline interpolation
  * @param use_lerp_for_z If true, it uses linear interpolation to resample position z.
  *        Otherwise, it uses spline interpolation
@@ -192,7 +232,7 @@ autoware_auto_planning_msgs::msg::Trajectory resampleTrajectory(
  */
 autoware_auto_planning_msgs::msg::Trajectory resampleTrajectory(
   const autoware_auto_planning_msgs::msg::Trajectory & input_trajectory,
-  const double resample_interval, const bool use_lerp_for_xy = false,
+  const double resample_interval, const bool use_akima_spline_for_xy = false,
   const bool use_lerp_for_z = true, const bool use_zero_order_hold_for_twist = true,
   const bool resample_input_trajectory_stop_point = true);
 }  // namespace motion_utils

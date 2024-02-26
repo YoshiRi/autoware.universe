@@ -15,7 +15,8 @@
 #include "motion_velocity_smoother/trajectory_utils.hpp"
 
 #include "interpolation/linear_interpolation.hpp"
-#include "interpolation/spline_interpolation.hpp"
+#include "motion_utils/trajectory/trajectory.hpp"
+#include "tier4_autoware_utils/geometry/geometry.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -55,7 +56,10 @@ inline double integ_v(double v0, double a0, double j0, double t)
   return v0 + a0 * t + 0.5 * j0 * t * t;
 }
 
-inline double integ_a(double a0, double j0, double t) { return a0 + j0 * t; }
+inline double integ_a(double a0, double j0, double t)
+{
+  return a0 + j0 * t;
+}
 
 TrajectoryPoint calcInterpolatedTrajectoryPoint(
   const TrajectoryPoints & trajectory, const Pose & target_pose, const size_t seg_idx)
@@ -425,7 +429,7 @@ bool isValidStopDist(
   return true;
 }
 
-boost::optional<TrajectoryPoints> applyDecelFilterWithJerkConstraint(
+std::optional<TrajectoryPoints> applyDecelFilterWithJerkConstraint(
   const TrajectoryPoints & input, const size_t start_index, const double v0, const double a0,
   const double min_acc, const double decel_target_vel,
   const std::map<double, double> & jerk_profile)
@@ -531,7 +535,7 @@ boost::optional<TrajectoryPoints> applyDecelFilterWithJerkConstraint(
   return output_trajectory;
 }
 
-boost::optional<std::tuple<double, double, double, double>> updateStateWithJerkConstraint(
+std::optional<std::tuple<double, double, double, double>> updateStateWithJerkConstraint(
   const double v0, const double a0, const std::map<double, double> & jerk_profile, const double t)
 {
   // constexpr double eps = 1.0E-05;
@@ -553,15 +557,14 @@ boost::optional<std::tuple<double, double, double, double>> updateStateWithJerkC
       x = integ_x(x, v, a, j, dt);
       v = integ_v(v, a, j, dt);
       a = integ_a(a, j, dt);
-      const auto state = std::make_tuple(x, v, a, j);
-      return boost::optional<std::tuple<double, double, double, double>>(state);
+      return std::make_tuple(x, v, a, j);
     }
   }
 
   RCLCPP_WARN_STREAM(
     rclcpp::get_logger("motion_velocity_smoother").get_child("trajectory_utils"),
     "Invalid jerk profile");
-  return {};
+  return std::nullopt;
 }
 
 std::vector<double> calcVelocityProfileWithConstantJerkAndAccelerationLimit(
@@ -589,6 +592,21 @@ std::vector<double> calcVelocityProfileWithConstantJerkAndAccelerationLimit(
   }
 
   return velocities;
+}
+
+double calcStopDistance(const TrajectoryPoints & trajectory, const size_t closest)
+{
+  const auto idx = motion_utils::searchZeroVelocityIndex(trajectory);
+
+  if (!idx) {
+    return std::numeric_limits<double>::max();  // stop point is located far away
+  }
+
+  // TODO(Horibe): use arc length distance
+  const double stop_dist =
+    tier4_autoware_utils::calcDistance2d(trajectory.at(*idx), trajectory.at(closest));
+
+  return stop_dist;
 }
 
 }  // namespace trajectory_utils

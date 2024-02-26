@@ -32,7 +32,8 @@
 
 #include "freespace_planning_algorithms/abstract_algorithm.hpp"
 
-#include <tier4_autoware_utils/tier4_autoware_utils.hpp>
+#include <motion_utils/trajectory/trajectory.hpp>
+#include <tier4_autoware_utils/geometry/geometry.hpp>
 
 #include <algorithm>
 #include <deque>
@@ -226,16 +227,16 @@ FreespacePlannerNode::FreespacePlannerNode(const rclcpp::NodeOptions & node_opti
   // NodeParam
   {
     auto & p = node_param_;
-    p.planning_algorithm = declare_parameter("planning_algorithm", "astar");
-    p.waypoints_velocity = declare_parameter("waypoints_velocity", 5.0);
-    p.update_rate = declare_parameter("update_rate", 1.0);
-    p.th_arrived_distance_m = declare_parameter("th_arrived_distance_m", 1.0);
-    p.th_stopped_time_sec = declare_parameter("th_stopped_time_sec", 1.0);
-    p.th_stopped_velocity_mps = declare_parameter("th_stopped_velocity_mps", 0.01);
-    p.th_course_out_distance_m = declare_parameter("th_course_out_distance_m", 3.0);
-    p.vehicle_shape_margin_m = declare_parameter("vehicle_shape_margin_m", 1.0);
-    p.replan_when_obstacle_found = declare_parameter("replan_when_obstacle_found", true);
-    p.replan_when_course_out = declare_parameter("replan_when_course_out", true);
+    p.planning_algorithm = declare_parameter<std::string>("planning_algorithm");
+    p.waypoints_velocity = declare_parameter<double>("waypoints_velocity");
+    p.update_rate = declare_parameter<double>("update_rate");
+    p.th_arrived_distance_m = declare_parameter<double>("th_arrived_distance_m");
+    p.th_stopped_time_sec = declare_parameter<double>("th_stopped_time_sec");
+    p.th_stopped_velocity_mps = declare_parameter<double>("th_stopped_velocity_mps");
+    p.th_course_out_distance_m = declare_parameter<double>("th_course_out_distance_m");
+    p.vehicle_shape_margin_m = declare_parameter<double>("vehicle_shape_margin_m");
+    p.replan_when_obstacle_found = declare_parameter<bool>("replan_when_obstacle_found");
+    p.replan_when_course_out = declare_parameter<bool>("replan_when_course_out");
   }
 
   // set vehicle_info
@@ -251,7 +252,7 @@ FreespacePlannerNode::FreespacePlannerNode(const rclcpp::NodeOptions & node_opti
 
   // Subscribers
   {
-    route_sub_ = create_subscription<HADMapRoute>(
+    route_sub_ = create_subscription<LaneletRoute>(
       "~/input/route", rclcpp::QoS{1}.transient_local(),
       std::bind(&FreespacePlannerNode::onRoute, this, _1));
     occupancy_grid_sub_ = create_subscription<OccupancyGrid>(
@@ -284,6 +285,8 @@ FreespacePlannerNode::FreespacePlannerNode(const rclcpp::NodeOptions & node_opti
     timer_ = rclcpp::create_timer(
       this, get_clock(), period_ns, std::bind(&FreespacePlannerNode::onTimer, this));
   }
+
+  logger_configure_ = std::make_unique<tier4_autoware_utils::LoggerLevelConfigure>(this);
 }
 
 PlannerCommonParam FreespacePlannerNode::getPlannerCommonParam()
@@ -291,27 +294,27 @@ PlannerCommonParam FreespacePlannerNode::getPlannerCommonParam()
   PlannerCommonParam p;
 
   // search configs
-  p.time_limit = declare_parameter("time_limit", 5000.0);
-  p.minimum_turning_radius = declare_parameter("minimum_turning_radius", 0.5);
-  p.maximum_turning_radius = declare_parameter("maximum_turning_radius", 6.0);
-  p.turning_radius_size = declare_parameter("turning_radius_size", 11);
+  p.time_limit = declare_parameter<double>("time_limit");
+  p.minimum_turning_radius = declare_parameter<double>("minimum_turning_radius");
+  p.maximum_turning_radius = declare_parameter<double>("maximum_turning_radius");
+  p.turning_radius_size = declare_parameter<int>("turning_radius_size");
   p.maximum_turning_radius = std::max(p.maximum_turning_radius, p.minimum_turning_radius);
   p.turning_radius_size = std::max(p.turning_radius_size, 1);
 
-  p.theta_size = declare_parameter("theta_size", 48);
-  p.angle_goal_range = declare_parameter("angle_goal_range", 6.0);
-  p.curve_weight = declare_parameter("curve_weight", 1.2);
-  p.reverse_weight = declare_parameter("reverse_weight", 2.00);
-  p.lateral_goal_range = declare_parameter("lateral_goal_range", 0.5);
-  p.longitudinal_goal_range = declare_parameter("longitudinal_goal_range", 2.0);
+  p.theta_size = declare_parameter<int>("theta_size");
+  p.angle_goal_range = declare_parameter<double>("angle_goal_range");
+  p.curve_weight = declare_parameter<double>("curve_weight");
+  p.reverse_weight = declare_parameter<double>("reverse_weight");
+  p.lateral_goal_range = declare_parameter<double>("lateral_goal_range");
+  p.longitudinal_goal_range = declare_parameter<double>("longitudinal_goal_range");
 
   // costmap configs
-  p.obstacle_threshold = declare_parameter("obstacle_threshold", 100);
+  p.obstacle_threshold = declare_parameter<int>("obstacle_threshold");
 
   return p;
 }
 
-void FreespacePlannerNode::onRoute(const HADMapRoute::ConstSharedPtr msg)
+void FreespacePlannerNode::onRoute(const LaneletRoute::ConstSharedPtr msg)
 {
   route_ = msg;
 
@@ -326,7 +329,10 @@ void FreespacePlannerNode::onOccupancyGrid(const OccupancyGrid::ConstSharedPtr m
   occupancy_grid_ = msg;
 }
 
-void FreespacePlannerNode::onScenario(const Scenario::ConstSharedPtr msg) { scenario_ = msg; }
+void FreespacePlannerNode::onScenario(const Scenario::ConstSharedPtr msg)
+{
+  scenario_ = msg;
+}
 
 void FreespacePlannerNode::onOdometry(const Odometry::ConstSharedPtr msg)
 {
@@ -366,7 +372,7 @@ bool FreespacePlannerNode::isPlanRequired()
     const bool is_obstacle_found =
       algo_->hasObstacleOnTrajectory(trajectory2PoseArray(forward_trajectory));
     if (is_obstacle_found) {
-      RCLCPP_INFO(get_logger(), "Found obstacle");
+      RCLCPP_DEBUG(get_logger(), "Found obstacle");
       return true;
     }
   }
@@ -428,9 +434,9 @@ void FreespacePlannerNode::onTimer()
   }
 
   // Get current pose
-  constexpr const char * vehicle_frame = "base_link";
-  current_pose_ = tier4_autoware_utils::transform2pose(
-    getTransform(occupancy_grid_->header.frame_id, vehicle_frame));
+  current_pose_.pose = odom_->pose.pose;
+  current_pose_.header = odom_->header;
+
   if (current_pose_.header.frame_id == "") {
     return;
   }
@@ -487,10 +493,10 @@ void FreespacePlannerNode::planTrajectory()
   const bool result = algo_->makePlan(current_pose_in_costmap_frame, goal_pose_in_costmap_frame);
   const rclcpp::Time end = get_clock()->now();
 
-  RCLCPP_INFO(get_logger(), "Freespace planning: %f [s]", (end - start).seconds());
+  RCLCPP_DEBUG(get_logger(), "Freespace planning: %f [s]", (end - start).seconds());
 
   if (result) {
-    RCLCPP_INFO(get_logger(), "Found goal!");
+    RCLCPP_DEBUG(get_logger(), "Found goal!");
     trajectory_ =
       createTrajectory(current_pose_, algo_->getWaypoints(), node_param_.waypoints_velocity);
     reversing_indices_ = getReversingIndices(trajectory_);

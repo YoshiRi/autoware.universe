@@ -16,6 +16,7 @@
 #include "joy_controller/joy_converter/ds4_joy_converter.hpp"
 #include "joy_controller/joy_converter/g29_joy_converter.hpp"
 #include "joy_controller/joy_converter/p65_joy_converter.hpp"
+#include "joy_controller/joy_converter/xbox_joy_converter.hpp"
 
 #include <tier4_api_utils/tier4_api_utils.hpp>
 
@@ -154,6 +155,8 @@ void AutowareJoyControllerNode::onJoy(const sensor_msgs::msg::Joy::ConstSharedPt
     joy_ = std::make_shared<const G29JoyConverter>(*msg);
   } else if (joy_type_ == "DS4") {
     joy_ = std::make_shared<const DS4JoyConverter>(*msg);
+  } else if (joy_type_ == "XBOX") {
+    joy_ = std::make_shared<const XBOXJoyConverter>(*msg);
   } else {
     joy_ = std::make_shared<const P65JoyConverter>(*msg);
   }
@@ -217,7 +220,7 @@ bool AutowareJoyControllerNode::isDataReady()
   }
 
   // Twist
-  {
+  if (!raw_control_) {
     if (!twist_) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), std::chrono::milliseconds(5000).count(),
@@ -450,18 +453,19 @@ AutowareJoyControllerNode::AutowareJoyControllerNode(const rclcpp::NodeOptions &
 : Node("joy_controller", node_options)
 {
   // Parameter
-  joy_type_ = declare_parameter("joy_type", std::string("DS4"));
-  update_rate_ = declare_parameter("update_rate", 10.0);
-  accel_ratio_ = declare_parameter("accel_ratio", 3.0);
-  brake_ratio_ = declare_parameter("brake_ratio", 5.0);
-  steer_ratio_ = declare_parameter("steer_ratio", 0.5);
-  steering_angle_velocity_ = declare_parameter("steering_angle_velocity", 0.1);
-  accel_sensitivity_ = declare_parameter("accel_sensitivity", 1.0);
-  brake_sensitivity_ = declare_parameter("brake_sensitivity", 1.0);
-  velocity_gain_ = declare_parameter("control_command.velocity_gain", 3.0);
-  max_forward_velocity_ = declare_parameter("control_command.max_forward_velocity", 20.0);
-  max_backward_velocity_ = declare_parameter("control_command.max_backward_velocity", 3.0);
-  backward_accel_ratio_ = declare_parameter("control_command.backward_accel_ratio", 1.0);
+  joy_type_ = declare_parameter<std::string>("joy_type");
+  update_rate_ = declare_parameter<double>("update_rate");
+  accel_ratio_ = declare_parameter<double>("accel_ratio");
+  brake_ratio_ = declare_parameter<double>("brake_ratio");
+  steer_ratio_ = declare_parameter<double>("steer_ratio");
+  steering_angle_velocity_ = declare_parameter<double>("steering_angle_velocity");
+  accel_sensitivity_ = declare_parameter<double>("accel_sensitivity");
+  brake_sensitivity_ = declare_parameter<double>("brake_sensitivity");
+  raw_control_ = declare_parameter<bool>("control_command.raw_control");
+  velocity_gain_ = declare_parameter<double>("control_command.velocity_gain");
+  max_forward_velocity_ = declare_parameter<double>("control_command.max_forward_velocity");
+  max_backward_velocity_ = declare_parameter<double>("control_command.max_backward_velocity");
+  backward_accel_ratio_ = declare_parameter<double>("control_command.backward_accel_ratio");
 
   RCLCPP_INFO(get_logger(), "Joy type: %s", joy_type_.c_str());
 
@@ -477,10 +481,14 @@ AutowareJoyControllerNode::AutowareJoyControllerNode(const rclcpp::NodeOptions &
   sub_joy_ = this->create_subscription<sensor_msgs::msg::Joy>(
     "input/joy", 1, std::bind(&AutowareJoyControllerNode::onJoy, this, std::placeholders::_1),
     subscriber_option);
-  sub_odom_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "input/odometry", 1,
-    std::bind(&AutowareJoyControllerNode::onOdometry, this, std::placeholders::_1),
-    subscriber_option);
+  if (!raw_control_) {
+    sub_odom_ = this->create_subscription<nav_msgs::msg::Odometry>(
+      "input/odometry", 1,
+      std::bind(&AutowareJoyControllerNode::onOdometry, this, std::placeholders::_1),
+      subscriber_option);
+  } else {
+    twist_ = std::make_shared<geometry_msgs::msg::TwistStamped>();
+  }
 
   // Publisher
   pub_control_command_ =
@@ -511,8 +519,8 @@ AutowareJoyControllerNode::AutowareJoyControllerNode(const rclcpp::NodeOptions &
     RCLCPP_INFO(get_logger(), "Waiting for emergency_stop service connection...");
   }
 
-  client_autoware_engage_ = this->create_client<tier4_external_api_msgs::srv::Engage>(
-    "service/autoware_engage", rmw_qos_profile_services_default);
+  client_autoware_engage_ =
+    this->create_client<tier4_external_api_msgs::srv::Engage>("service/autoware_engage");
 
   // Timer
   initTimer(1.0 / update_rate_);

@@ -16,13 +16,13 @@
 #define DETECTION_BY_TRACKER__DETECTION_BY_TRACKER_CORE_HPP_
 
 #include "detection_by_tracker/debugger.hpp"
+#include "detection_by_tracker/utils.hpp"
 
 #include <euclidean_cluster/euclidean_cluster.hpp>
 #include <euclidean_cluster/utils.hpp>
 #include <euclidean_cluster/voxel_grid_based_euclidean_cluster.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <shape_estimation/shape_estimator.hpp>
-#include <tier4_autoware_utils/tier4_autoware_utils.hpp>
 
 #include <autoware_auto_perception_msgs/msg/detected_objects.hpp>
 #include <autoware_auto_perception_msgs/msg/tracked_objects.hpp>
@@ -44,9 +44,9 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <deque>
+#include <map>
 #include <memory>
 #include <vector>
-
 class TrackerHandler
 {
 private:
@@ -78,8 +78,12 @@ private:
   std::shared_ptr<ShapeEstimator> shape_estimator_;
   std::shared_ptr<euclidean_cluster::EuclideanClusterInterface> cluster_;
   std::shared_ptr<Debugger> debugger_;
+  std::map<uint8_t, int> max_search_distance_for_merger_;
+  std::map<uint8_t, int> max_search_distance_for_divider_;
 
-  bool ignore_unknown_tracker_;
+  detection_by_tracker::utils::TrackerIgnoreLabel tracker_ignore_;
+
+  void setMaxSearchRange();
 
   void onObjects(
     const tier4_perception_msgs::msg::DetectedObjectsWithFeature::ConstSharedPtr input_msg);

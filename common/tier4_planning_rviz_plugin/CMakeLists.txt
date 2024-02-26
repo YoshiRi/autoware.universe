@@ -17,21 +17,14 @@ include_directories(
 )
 
 ament_auto_add_library(tier4_planning_rviz_plugin SHARED
-  include/drivable_area/display.hpp
-  src/drivable_area/display.cpp
-  include/path/display.hpp
+  # path point
+  include/tier4_planning_rviz_plugin/path/display_base.hpp
+  include/tier4_planning_rviz_plugin/path/display.hpp
   src/path/display.cpp
-  include/path_footprint/display.hpp
-  src/path_footprint/display.cpp
-  include/path_with_lane_id/display.hpp
-  src/path_with_lane_id/display.cpp
-  include/path_with_lane_id_footprint/display.hpp
-  src/path_with_lane_id_footprint/display.cpp
-  include/trajectory/display.hpp
-  src/trajectory/display.cpp
-  include/trajectory_footprint/display.hpp
-  src/trajectory_footprint/display.cpp
-  include/mission_checkpoint/mission_checkpoint.hpp
+  # footprint
+  include/tier4_planning_rviz_plugin/pose_with_uuid_stamped/display.hpp
+  src/pose_with_uuid_stamped/display.cpp
+  include/tier4_planning_rviz_plugin/mission_checkpoint/mission_checkpoint.hpp
   src/mission_checkpoint/mission_checkpoint.cpp
   src/tools/jsk_overlay_utils.cpp
   src/tools/max_velocity.cpp

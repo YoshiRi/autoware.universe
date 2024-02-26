@@ -22,17 +22,25 @@
 
 namespace centerpoint
 {
-TensorRTWrapper::TensorRTWrapper(const CenterPointConfig & config, const bool verbose)
-: config_(config), logger_(Logger(verbose))
+TensorRTWrapper::TensorRTWrapper(const CenterPointConfig & config) : config_(config)
 {
+}
+
+TensorRTWrapper::~TensorRTWrapper()
+{
+  context_.reset();
+  runtime_.reset();
+  plan_.reset();
+  engine_.reset();
 }
 
 bool TensorRTWrapper::init(
   const std::string & onnx_path, const std::string & engine_path, const std::string & precision)
 {
-  runtime_ = unique_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(logger_));
+  runtime_ =
+    tensorrt_common::TrtUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(logger_));
   if (!runtime_) {
-    std::cout << "Fail to create runtime" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create runtime" << std::endl;
     return false;
   }
 
@@ -41,7 +49,11 @@ bool TensorRTWrapper::init(
   if (engine_file.is_open()) {
     success = loadEngine(engine_path);
   } else {
+    auto log_thread = logger_.log_throttle(
+      nvinfer1::ILogger::Severity::kINFO,
+      "Applying optimizations and building TRT CUDA engine. Please wait a minutes...", 5);
     success = parseONNX(onnx_path, engine_path, precision);
+    logger_.stop_throttle(log_thread);
   }
   success &= createContext();
 
@@ -51,13 +63,15 @@ bool TensorRTWrapper::init(
 bool TensorRTWrapper::createContext()
 {
   if (!engine_) {
-    std::cout << "Fail to create context: Engine isn't created" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_)
+      << "Failed to create context: Engine was not created" << std::endl;
     return false;
   }
 
-  context_ = unique_ptr<nvinfer1::IExecutionContext>(engine_->createExecutionContext());
+  context_ =
+    tensorrt_common::TrtUniquePtr<nvinfer1::IExecutionContext>(engine_->createExecutionContext());
   if (!context_) {
-    std::cout << "Fail to create context" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create context" << std::endl;
     return false;
   }
 
@@ -68,15 +82,17 @@ bool TensorRTWrapper::parseONNX(
   const std::string & onnx_path, const std::string & engine_path, const std::string & precision,
   const size_t workspace_size)
 {
-  auto builder = unique_ptr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(logger_));
+  auto builder =
+    tensorrt_common::TrtUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(logger_));
   if (!builder) {
-    std::cout << "Fail to create builder" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create builder" << std::endl;
     return false;
   }
 
-  auto config = unique_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
+  auto config =
+    tensorrt_common::TrtUniquePtr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
   if (!config) {
-    std::cout << "Fail to create config" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create config" << std::endl;
     return false;
   }
 #if (NV_TENSORRT_MAJOR * 1000) + (NV_TENSORRT_MINOR * 100) + NV_TENSOR_PATCH >= 8400
@@ -86,40 +102,42 @@ bool TensorRTWrapper::parseONNX(
 #endif
   if (precision == "fp16") {
     if (builder->platformHasFastFp16()) {
-      std::cout << "use TensorRT FP16 Inference" << std::endl;
+      tensorrt_common::LOG_INFO(logger_) << "Using TensorRT FP16 Inference" << std::endl;
       config->setFlag(nvinfer1::BuilderFlag::kFP16);
     } else {
-      std::cout << "TensorRT FP16 Inference isn't supported in this environment" << std::endl;
+      tensorrt_common::LOG_INFO(logger_)
+        << "TensorRT FP16 Inference isn't supported in this environment" << std::endl;
     }
   }
 
   const auto flag =
     1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-  auto network = unique_ptr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(flag));
+  auto network =
+    tensorrt_common::TrtUniquePtr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(flag));
   if (!network) {
-    std::cout << "Fail to create network" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create network" << std::endl;
     return false;
   }
 
-  auto parser = unique_ptr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, logger_));
+  auto parser = tensorrt_common::TrtUniquePtr<nvonnxparser::IParser>(
+    nvonnxparser::createParser(*network, logger_));
   parser->parseFromFile(onnx_path.c_str(), static_cast<int>(nvinfer1::ILogger::Severity::kERROR));
 
   if (!setProfile(*builder, *network, *config)) {
-    std::cout << "Fail to set profile" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to set profile" << std::endl;
     return false;
   }
 
-  std::cout << "Applying optimizations and building TRT CUDA engine (" << onnx_path << ") ..."
-            << std::endl;
-  plan_ = unique_ptr<nvinfer1::IHostMemory>(builder->buildSerializedNetwork(*network, *config));
+  plan_ = tensorrt_common::TrtUniquePtr<nvinfer1::IHostMemory>(
+    builder->buildSerializedNetwork(*network, *config));
   if (!plan_) {
-    std::cout << "Fail to create serialized network" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create serialized network" << std::endl;
     return false;
   }
-  engine_ = unique_ptr<nvinfer1::ICudaEngine>(
+  engine_ = tensorrt_common::TrtUniquePtr<nvinfer1::ICudaEngine>(
     runtime_->deserializeCudaEngine(plan_->data(), plan_->size()));
   if (!engine_) {
-    std::cout << "Fail to create engine" << std::endl;
+    tensorrt_common::LOG_ERROR(logger_) << "Failed to create engine" << std::endl;
     return false;
   }
 
@@ -128,7 +146,7 @@ bool TensorRTWrapper::parseONNX(
 
 bool TensorRTWrapper::saveEngine(const std::string & engine_path)
 {
-  std::cout << "Writing to " << engine_path << std::endl;
+  tensorrt_common::LOG_INFO(logger_) << "Writing to " << engine_path << std::endl;
   std::ofstream file(engine_path, std::ios::out | std::ios::binary);
   file.write(reinterpret_cast<const char *>(plan_->data()), plan_->size());
   return true;
@@ -136,22 +154,13 @@ bool TensorRTWrapper::saveEngine(const std::string & engine_path)
 
 bool TensorRTWrapper::loadEngine(const std::string & engine_path)
 {
-  std::ifstream file(engine_path, std::ios::in | std::ios::binary);
-  file.seekg(0, std::ifstream::end);
-  const size_t size = file.tellg();
-  file.seekg(0, std::ifstream::beg);
-
-  std::unique_ptr<char[]> buffer{new char[size]};
-  file.read(buffer.get(), size);
-  file.close();
-
-  if (!runtime_) {
-    std::cout << "Fail to load engine: Runtime isn't created" << std::endl;
-    return false;
-  }
-
-  std::cout << "Loading from " << engine_path << std::endl;
-  engine_ = unique_ptr<nvinfer1::ICudaEngine>(runtime_->deserializeCudaEngine(buffer.get(), size));
+  std::ifstream engine_file(engine_path);
+  std::stringstream engine_buffer;
+  engine_buffer << engine_file.rdbuf();
+  std::string engine_str = engine_buffer.str();
+  engine_ = tensorrt_common::TrtUniquePtr<nvinfer1::ICudaEngine>(runtime_->deserializeCudaEngine(
+    reinterpret_cast<const void *>(engine_str.data()), engine_str.size()));
+  tensorrt_common::LOG_INFO(logger_) << "Loaded engine from " << engine_path << std::endl;
   return true;
 }
 

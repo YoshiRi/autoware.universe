@@ -14,8 +14,9 @@
 //
 // Co-developed by Tier IV, Inc. and Apex.AI, Inc.
 
-#include <common/types.hpp>
-#include <geometry/lookup_table.hpp>
+#include "autoware_auto_geometry/lookup_table.hpp"
+
+#include <autoware_auto_common/common/types.hpp>
 
 #include <gtest/gtest.h>
 
@@ -107,7 +108,7 @@ TYPED_TEST(SanityCheck, Exact)
 TYPED_TEST(SanityCheck, Interpolation)
 {
   const auto x = TypeParam{2};
-  // Asssert x is not identically in domain_
+  // Assert x is not identically in domain_
   ASSERT_TRUE(this->not_in_domain(x));
   const auto result = this->table_->lookup(x);
   this->check(result, TypeParam{3});

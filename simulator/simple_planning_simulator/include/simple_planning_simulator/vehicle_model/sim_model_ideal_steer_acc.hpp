@@ -15,9 +15,10 @@
 #ifndef SIMPLE_PLANNING_SIMULATOR__VEHICLE_MODEL__SIM_MODEL_IDEAL_STEER_ACC_HPP_
 #define SIMPLE_PLANNING_SIMULATOR__VEHICLE_MODEL__SIM_MODEL_IDEAL_STEER_ACC_HPP_
 
-#include "eigen3/Eigen/Core"
-#include "eigen3/Eigen/LU"
 #include "simple_planning_simulator/vehicle_model/sim_model_interface.hpp"
+
+#include <Eigen/Core>
+#include <Eigen/LU>
 
 #include <iostream>
 
@@ -32,7 +33,7 @@ public:
    * @brief constructor
    * @param [in] wheelbase vehicle wheelbase length [m]
    */
-  explicit SimModelIdealSteerAcc(float64_t wheelbase);
+  explicit SimModelIdealSteerAcc(double wheelbase);
 
   /**
    * @brief destructor
@@ -46,53 +47,53 @@ private:
     STEER_DES,
   };
 
-  const float64_t wheelbase_;  //!< @brief vehicle wheelbase length
+  const double wheelbase_;  //!< @brief vehicle wheelbase length
 
   /**
    * @brief get vehicle position x
    */
-  float64_t getX() override;
+  double getX() override;
 
   /**
    * @brief get vehicle position y
    */
-  float64_t getY() override;
+  double getY() override;
 
   /**
    * @brief get vehicle angle yaw
    */
-  float64_t getYaw() override;
+  double getYaw() override;
 
   /**
    * @brief get vehicle longitudinal velocity
    */
-  float64_t getVx() override;
+  double getVx() override;
 
   /**
    * @brief get vehicle lateral velocity
    */
-  float64_t getVy() override;
+  double getVy() override;
 
   /**
    * @brief get vehicle longitudinal acceleration
    */
-  float64_t getAx() override;
+  double getAx() override;
 
   /**
    * @brief get vehicle angular-velocity wz
    */
-  float64_t getWz() override;
+  double getWz() override;
 
   /**
    * @brief get vehicle steering angle
    */
-  float64_t getSteer() override;
+  double getSteer() override;
 
   /**
    * @brief update vehicle states
    * @param [in] dt delta time [s]
    */
-  void update(const float64_t & dt) override;
+  void update(const double & dt) override;
 
   /**
    * @brief calculate derivative of states with ideal steering model

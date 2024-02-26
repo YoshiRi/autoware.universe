@@ -19,9 +19,8 @@
 
 #include "system_monitor/voltage_monitor/voltage_monitor.hpp"
 
+#include "system_monitor/msr_reader/msr_reader.hpp"
 #include "system_monitor/system_monitor_utility.hpp"
-
-#include <msr_reader/msr_reader.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -200,7 +199,10 @@ void VoltageMonitor::checkBatteryStatus(diagnostic_updater::DiagnosticStatusWrap
   SystemMonitorUtility::stopMeasurement(t_start, stat);
 }
 
-void VoltageMonitor::update() { updater_.force_update(); }
+void VoltageMonitor::update()
+{
+  updater_.force_update();
+}
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(VoltageMonitor)

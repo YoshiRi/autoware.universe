@@ -70,16 +70,26 @@ Example:
 
 ### Core Parameters
 
-| Name                        | Type   | Description                                                    |
-| --------------------------- | ------ | -------------------------------------------------------------- |
-| `can_assign_matrix`         | double | Assignment table for data association                          |
-| `max_dist_matrix`           | double | Maximum distance table for data association                    |
-| `max_area_matrix`           | double | Maximum area table for data association                        |
-| `min_area_matrix`           | double | Minimum area table for data association                        |
-| `max_rad_matrix`            | double | Maximum angle table for data association                       |
-| `world_frame_id`            | double | tracking frame                                                 |
-| `enable_delay_compensation` | bool   | Estimate obstacles at current time considering detection delay |
-| `publish_rate`              | double | if enable_delay_compensation is true, how many hertz to output |
+Node parameters are defined in [multi_object_tracker.param.yaml](config/multi_object_tracker.param.yaml) and association parameters are defined in [data_association.param.yaml](config/data_association.param.yaml).
+
+#### Node parameters
+
+| Name                        | Type   | Description                                                                                                                 |
+| --------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `***_tracker`               | string | EKF tracker name for each class                                                                                             |
+| `world_frame_id`            | double | object kinematics definition frame                                                                                          |
+| `enable_delay_compensation` | bool   | if True, tracker use timers to schedule publishers and use prediction step to extrapolate object state at desired timestamp |
+| `publish_rate`              | double | Timer frequency to output with delay compensation                                                                           |
+
+#### Association parameters
+
+| Name                | Type   | Description                                 |
+| ------------------- | ------ | ------------------------------------------- |
+| `can_assign_matrix` | double | Assignment table for data association       |
+| `max_dist_matrix`   | double | Maximum distance table for data association |
+| `max_area_matrix`   | double | Maximum area table for data association     |
+| `min_area_matrix`   | double | Minimum area table for data association     |
+| `max_rad_matrix`    | double | Maximum angle table for data association    |
 
 ## Assumptions / Known limits
 
@@ -89,6 +99,8 @@ Example:
   This algorithm assumes obstacles are not moving, so if they rapidly move after the vehicle started to avoid them, it might collide with them.
   Also, this algorithm doesn't care about blind spots. In general, since too close obstacles aren't visible due to the sensing performance limit, please take enough margin to obstacles.
 -->
+
+See the [model explanations](models.md).
 
 ## (Optional) Error detection and handling
 
