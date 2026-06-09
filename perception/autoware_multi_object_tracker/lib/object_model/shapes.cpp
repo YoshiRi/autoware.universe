@@ -50,8 +50,10 @@ inline OrientedExtent computeOrientedExtent(
     std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest(),
     std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest()};
   for (const auto & p : points) {
-    const double along = p.x * cos_u + p.y * sin_u;
-    const double lat = -p.x * sin_u + p.y * cos_u;
+    const double px = static_cast<double>(p.x);
+    const double py = static_cast<double>(p.y);
+    const double along = px * cos_u + py * sin_u;
+    const double lat = -px * sin_u + py * cos_u;
     if (along < ext.min_along) ext.min_along = along;
     if (along > ext.max_along) ext.max_along = along;
     if (lat < ext.min_lat) ext.min_lat = lat;
@@ -242,7 +244,10 @@ bool convertConvexHullToBoundingBox(
     const double edge_len = std::sqrt(len_sq);
     const auto ext = computeOrientedExtent(points, ex / edge_len, ey / edge_len);
     const double area = (ext.max_along - ext.min_along) * (ext.max_lat - ext.min_lat);
-    if (area < best_area) {
+    // Use a relative tolerance to avoid float-precision artifacts when comparing areas that are
+    // nearly equal (footprint points are stored as float, introducing rounding errors).
+    constexpr double kRelTol = 1e-5;
+    if (area < best_area * (1.0 - kRelTol)) {
       best_area = area;
       best_i = i;
       best_ext = ext;
